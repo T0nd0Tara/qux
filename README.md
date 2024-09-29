@@ -49,9 +49,10 @@ f32, f64          // floating point of the said bits
 int  // an int that enlarges it's size in need
 uint // an unsigned int that enlarges it's size in need
 
-type[]             // array of `type`s
+[]type             // dynamic array of `type`s
+[5]type            // array of `type`s, with size of 5
 [type_1, type_2]   // an array of 2 types
-[type_1, type_2][] // array where each cell is an array of 2 types
+[][type_1, type_2] // dynamic array where each cell is an array of 2 types
 
 char // an 8 bit value (differs from u8 by how it's percieved in strings)
 str  // well... a string. defined as str :: char[]
@@ -60,7 +61,7 @@ dict // a hash map / json / dictionary
 *type // a pointer to an instance of type
 const *type  // a pointer to a type (the value can be changed but the pointer can't)
 * const type // a pointer to a type (the pointer can be changed but the value can't)
-const * const type // a pointer to a type (the pointer can be changed nor the value)
+const * const type // a pointer to a type (the pointer can't be changed nor the value)
 
 // you can also define your own types
 my_type :: int;
@@ -181,12 +182,11 @@ using_divide :: () -> int {
     a : int = // getting the value somewhere in the function
     b : int = // getting the value somewhere in the function (can be 0)
     
-    result := divide a, b ! return 0;
-    return result;
+    return divide a, b ! return 0;
 };
 ```
 
-this syntax means we can concatinate multiple function where each returns an error
+This syntax means we can concatinate multiple function where each returns an error
 ```
 value := func1 val
     ! return func2 $ 
@@ -207,3 +207,108 @@ if (err != nil) {
     }
 }
 ```
+
+## Control Flow
+### Loops
+you might think that because of the pipes, there is no loops in this language, but you can't be more wrong!
+Recursion although available in the language, is just as confusing as in any other language
+
+We don't like to be confused, so we do use functions
+```
+// for loop
+for "some string" {
+    print it; // it is the current value of the last loop
+}
+
+for 1..10 {
+    print it;
+}
+
+// inlined
+for 1..10 print it;
+
+// setting a variable to the current it
+for i 1..10 { 
+    print i;
+}
+
+// setting a variable to the current it
+for i:i8 1..10 { 
+    print i;
+}
+
+
+// while loop
+x := 0;
+while true {
+    if x == 5 break;
+    x++;
+}
+
+while x > 5 {
+    if x == 7 skip; // skip is much better wording than continue
+    x = rand.;
+    print x;
+}
+
+// do while
+do {
+    a := rand.;
+} while a < 5; // a can be seen in the  while statement as it is part of the loop
+```
+
+### Turnery Operator
+if an `if` statement is used as a turnery operator. i.e. a regular if statement, but returns the last statement as a value
+```
+a := if rand. < 5 10; else 0; // Valid
+
+a := if rand. < 5 10; else ---; // Valid
+a := if rand. < 5 ---; else ---; // Error: not enough information for what "a" is
+a := if rand. < 5 10; // Error: no default value for a
+```
+
+
+## Compilation Time Statements
+every command that run in the compilation has a `#` infront of it
+here's a list of all of them
+```
+#include file_name; // assures the exported variables of the file, are seen from this one
+namespace_name :: #include file_name; // same as the previous, but inside a local namespace
+
+#extract struct_name; // unpacks all of the struct_name's variables where it's put
+
+#complete // exhoustive checking
+```
+
+## Flow
+### Import Loop
+Probably the most stupid feature in popular languages are the _import loops_
+
+let's say we have 2 files: file1, file2
+
+
+file1 uses exported variables from file2.
+<BR>
+and file2 uses exported variables from file1.
+
+this wont create an import loop. how? simple!
+<BR>
+when the compiler compiles the program it has the file with the main function.
+<BR>
+it adds it to the list of "seen files". and does the same for each file imported
+<BR>
+if we want to import a file that is already in that list, we just ignore it -> as we already read it
+
+This is the intuitive way C++'s `#pragma once` should work, but doesn't
+
+so each _qux_ program actually compiles to one big file
+
+
+### Reading order
+Just like Java, you can call a function that is not yet defined or even declared
+
+In qux it works for variables too.
+
+The compiler believes you he'd find a function with the appropriate stub, and when it finishes reading all the files it
+will raise an error if it didn't find any.
+
