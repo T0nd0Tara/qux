@@ -46,6 +46,8 @@ i8, i16, i32, i64 // signed integer of the said bits
 u8, u16, u32, u64 // unsigned integer of the said bits
 f32, f64          // floating point of the said bits
 
+bool // a boolean value, takes up 8 bits
+
 int  // an int that enlarges it's size in need
 uint // an unsigned int that enlarges it's size in need
 
@@ -54,7 +56,7 @@ uint // an unsigned int that enlarges it's size in need
 [type_1, type_2]   // an array of 2 types
 [][type_1, type_2] // dynamic array where each cell is an array of 2 types
 
-char // an 8 bit value (differs from u8 by how it's percieved in strings)
+char // an 8 bit value (differs from u8 by how it's percieved in strings / printing)
 str  // well... a string. defined as str :: char[]
 dict // a hash map / json / dictionary
 
@@ -65,6 +67,29 @@ const * const type // a pointer to a type (the pointer can't be changed nor the 
 
 // you can also define your own types
 my_type :: int;
+```
+### Default Conversion
+default conversion between types probably creates more bugs than it helps you.
+Therefor to auto convert your type you'd have to use the keyword `xx`.
+Although it looks like a function (and you can use it just like a function),
+it only does the conversion under the hood when needed.
+i.e. `a : *int8 = xx ptr` will only be used for readabilty, not by the compiler.
+
+Example
+```
+a : int = 8;
+b : i8 = 10;
+c : bool;
+
+c = 7 < a; // Valid, treats 7 as int
+
+c = 7 < b; // Valid, treats 7 as i8
+
+c = a < b; // Error, cannot do arithmetic operation on different types
+
+c = xx a < b; // Valid, converts a to i8 before checking the condition
+c = a < xx b; // Valid, converts b to int before checking the condition
+
 ```
 
 ## Structs
@@ -133,6 +158,41 @@ sum 4, 5;  // returns 9
 sum 4 + 5; // ERROR: sum requires 2 values, 1 where given
 inc   // doesnt call the function
 inc. // calls the function
+```
+
+### Default Values
+A function's default value can be called only if you specify the name of the variable
+i.e.
+```
+foo :: (a: int, b: int = 0) {
+    // ...
+};
+
+foo 4;        // OK, will be calling with b = 0;
+foo a=4;      // OK, will be calling with b = 0;
+foo 4, b = 5; // OK, will be calling with b = 5;
+foo 4, 5;     // Error, you have to specify the name of the default arguement
+```
+
+### Capture
+Functions can also have a specific capture.
+This says what the function can access out side of it. If not specified it will capture all.
+<BR>
+Unlike c++, captures will never copy the value, only use it as a reference
+```
+a := 0;
+b := 1;
+
+foo :: [a]() {
+    print a; // Valid
+    a++;     // Valid
+    print b; // Error, b not in capture
+};
+bar :: () {
+    print a; // Valid
+    a++;     // Valid
+    print b; // Valid
+};
 ```
 
 ### Pipes
@@ -257,6 +317,20 @@ do {
 } while a < 5; // a can be seen in the  while statement as it is part of the loop
 ```
 
+#### Breaking / skiping nested loops
+Other programming languages typically let you use `goto` to exit nested loops. But using `goto` usually makes spaghetti code
+that's why it is not implemented.
+<BR>
+What youd want to use instead is
+```
+for y 0..10 {
+    for x 0..10 {
+        if cell_is_problematic x, y
+            break y; // this tells the compiler to break the loop with variable y. also works with the skip keyword
+    }
+}
+```
+
 ### Turnery Operator
 if an `if` statement is used as a turnery operator. i.e. a regular if statement, but returns the last statement as a value
 ```
@@ -267,6 +341,54 @@ a := if rand. < 5 ---; else ---; // Error: not enough information for what "a" i
 a := if rand. < 5 10; // Error: no default value for a
 ```
 
+### Switch Statements
+switch statements don't fallthrough to the next case.
+
+To do so, you need to explicitly state `fallthrough` at the end of the scope
+```
+a := if x == {
+    case 0; 0;
+    case 5; 1;
+    case 10; 2;
+    case; 3; // default
+};
+
+b := if x == {
+    case 0; 0;
+    case 5; 1;
+    case 10; 2;
+} else 3; // default (possible but not best practice)
+
+// doesn't have to be equal
+grade := if score <= {
+    case 60;  "F";
+    case 70;  "D";
+    case 80;  "C";
+    case 90;  "B";
+    case 100; "A";
+    case; "A+";
+};
+```
+
+### Defer
+defer does the same as every other language. i.e. called when exiting the scope
+```
+// prints: 1 2
+foo :: () {
+    defer print 2
+    print 1
+};
+```
+usefull for grouping simmilar lines together.
+For example
+```
+write_to_file :: (file_name: str) {
+    file := open file_name;
+    defer close file;
+    
+    // do stuff with the file
+};
+```
 
 ## Compilation Time Statements
 every command that run in the compilation has a `#` infront of it
@@ -278,6 +400,32 @@ namespace_name :: #include file_name; // same as the previous, but inside a loca
 #extract struct_name; // unpacks all of the struct_name's variables where it's put
 
 #complete // exhoustive checking
+```
+
+## Exporting
+you can export any thing pretty much, as long as it is accessible at the file level (i.e. no exporting variables inside
+functions)
+```
+foo :: () -> int {
+    // ...
+};
+
+// makes foo accessible to other files
+export foo;
+
+// also accessible from other files
+export bar :: int;
+
+// only accessible inside the file
+baz :: 5;
+
+boop :: () {
+  export a :: 0; // Error: can't export variables inside scope
+};
+
+bap :: struct {
+  export a :: 0; // Error: can't export variables inside scope
+};
 ```
 
 ## Flow
@@ -311,4 +459,94 @@ In qux it works for variables too.
 
 The compiler believes you he'd find a function with the appropriate stub, and when it finishes reading all the files it
 will raise an error if it didn't find any.
+
+## Heap Allocation
+all we talked about (except dynamic arrays), happens on the stack.
+<BR>
+well what happens if we want something on the heap? the `new` keyword assignes whatever you said to it on the heap.
+<BR>
+It will return a pointer of that data
+```
+a := 5; // stack allocation
+
+b := new 5; // heap allocation
+
+c : int = new 5; // Error: type *int cannot be assigned to type int
+
+d : *my_struct = new {
+    var1 = 1;
+    var2 = 2;
+};
+
+```
+
+This is all allocated in reference to the last context in the context stack
+<BR>
+A context is a pre-defined struct that contains nothing at default but can be overriden
+
+For example
+```
+my_context : context = ---;
+push_context my_context {
+    function_that_allocates_memory_on_the_heap.;
+}
+
+// same as
+push_context --- {
+    function_that_allocates_memory_on_the_heap.;
+}
+
+// same as
+push_context {
+    function_that_allocates_memory_on_the_heap.;
+}
+```
+When the context is poped off (at the end of the `push_context` brackets),
+all things allocated on that context would be
+deleted.
+
+When the program starts there is a base context so that you could allocate some heap memory. But this context only
+pop off when the program exits.
+<BR>
+i.e. whatever is allocated on the base context cannot be deleted during the program.
+
+### Overriding the Context
+The program will fail to compile if there are multiple defenitions of the context struct
+```
+context :: struct {
+    // whatever you want...
+    // Can be a logger, 
+    // The current size of what was allocated on it
+};
+```
+TODO: what happens if i use a library that have a different context than mine? It is currently an unreasolved problem.
+      maybe this language shouldn't allow to override the struct at all, maybe a struct is not needed...
+
+### Using the Current Context
+What if you want to use the current context? there is a keyword `current_context` that reference the current context
+
+For example
+```
+context :: struct {
+    count := 0;
+};
+
+foo :: () {
+    current_context.count = 5;
+};
+
+current_context.count++;
+print current_context.count; // prints 1
+
+push_context --- {
+    current_context.count++;
+    print current_context.count; // prints 1
+    foo.;
+    print current_context.count; // prints 5
+    
+}
+
+current_context.count++;
+print current_context.count; // prints 2
+```
 
