@@ -242,7 +242,7 @@ using_divide :: () -> int {
     a : int = // getting the value somewhere in the function
     b : int = // getting the value somewhere in the function (can be 0)
     
-    return divide a, b ! return 0;
+    return divide a, b ! 0; // return 0 on error
 };
 ```
 
