@@ -242,15 +242,15 @@ using_divide :: () -> int {
     a : int = // getting the value somewhere in the function
     b : int = // getting the value somewhere in the function (can be 0)
     
-    return divide a, b ! 0; // return 0 on error
+    return divide a, b !! 0; // return 0 on error
 };
 ```
 
 This syntax means we can concatinate multiple function where each returns an error
 ```
 value := func1 val
-    ! return func2 $ 
-    ! return func3 !$;
+    !! return func2 $ 
+    !! return func3 !$;
 ```
 
 where `!$` is the error of the previous function.
