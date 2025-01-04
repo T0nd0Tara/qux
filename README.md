@@ -154,10 +154,10 @@ default :: () -> int {
 
 ### Calling them
 ```
-sum 4, 5;  // returns 9
-sum 4 + 5; // ERROR: sum requires 2 values, 1 where given
+sum(4, 5);  // returns 9
+sum(4 + 5); // ERROR: sum requires 2 values, 1 where given
 inc   // doesnt call the function
-inc. // calls the function
+inc() // calls the function
 ```
 
 ### Default Values
@@ -168,10 +168,10 @@ foo :: (a: int, b: int = 0) {
     // ...
 };
 
-foo 4;        // OK, will be calling with b = 0;
-foo a=4;      // OK, will be calling with b = 0;
-foo 4, b = 5; // OK, will be calling with b = 5;
-foo 4, 5;     // Error, you have to specify the name of the default arguement
+foo(4);        // OK, will be calling with b = 0;
+foo(a=4);      // OK, will be calling with b = 0;
+foo(4, b = 5); // OK, will be calling with b = 5;
+foo(4, 5);     // Error, you have to specify the name of the default arguement
 ```
 
 ### Capture
@@ -210,13 +210,13 @@ suddenly to logic is backwords, we have to read from the middle of the line and 
 <BR>
 So what can we do? PIPES!
 ```
-is_title := "random string" . capitalize . split . first . is_title;
+is_title := "random string" .. capitalize .. split .. first .. is_title;
 ```
 The value the previous statement generated is parsed as the **first** argument for that function.
 <BR>
 If we dont want it to be the first argument, we can use `$`
 ```
-is_title := "random string" . capitalize . split . $[0] . is_title;
+is_title := "random string" .. capitalize() .. split() .. $[0] .. is_title();
 ```
 
 **NOTICE:** the last function (`is_title`) takes one argument, therefore id doesn't need a `.` after it.
@@ -227,7 +227,7 @@ i.e. it translates to `is_title the_result_of_the_last_pipe`.
 ```
 // returns an int and an error sometimes of type string
 divide :: (a: int, b: int) -> int !str { 
-    if b == 0 return --- !"You can't divide by zero";
+    if b == 0 return --- !> "You can't divide by zero";
     return a / b;
 };
 ```
@@ -266,6 +266,26 @@ if (err != nil) {
         return func3(err2);
     }
 }
+```
+
+### Other Pipes
+In qux there are many pipes
+```
+.. -> Always continue into the next statement
+!! -> continue only if there's an error
+
+?? -> continue only if value is nil
+&& -> continue only if the previous statement is true
+|| -> continue only if the previous statement is false
+```
+#### Inverted pipes
+Each pipe has an inverted version of it. which continues if the confition is false.
+
+You just take the pipe's character and add an `^` infront of it
+
+ie.
+```
+^! -> continue if there was no error
 ```
 
 ## Control Flow
@@ -325,7 +345,7 @@ What youd want to use instead is
 ```
 for y 0..10 {
     for x 0..10 {
-        if cell_is_problematic x, y
+        if cell_is_problematic(x, y)
             break y; // this tells the compiler to break the loop with variable y. also works with the skip keyword
     }
 }
@@ -334,11 +354,11 @@ for y 0..10 {
 ### Turnery Operator
 if an `if` statement is used as a turnery operator. i.e. a regular if statement, but returns the last statement as a value
 ```
-a := if rand. < 5 10; else 0; // Valid
+a := if rand() < 5 10; else 0; // Valid
 
-a := if rand. < 5 10; else ---; // Valid
-a := if rand. < 5 ---; else ---; // Error: not enough information for what "a" is
-a := if rand. < 5 10; // Error: no default value for a
+a := if rand() < 5 10; else ---; // Valid
+a := if rand() < 5 ---; else ---; // Error: not enough information for what "a" is
+a := if rand() < 5 10; // Error: no default value for a
 ```
 
 ### Switch Statements
@@ -390,12 +410,14 @@ write_to_file :: (file_name: str) {
 };
 ```
 
+If multiple defer statements apear in the same scope, They will be executed as a stack (FILO)
+
 ## Compilation Time Statements
 every command that run in the compilation has a `#` infront of it
 here's a list of all of them
 ```
 #include file_name; // assures the exported variables of the file, are seen from this one
-namespace_name :: #include file_name; // same as the previous, but inside a local namespace
+namespace_name :: #include file_name; // same as the previous, but inside a local struct
 
 #extract struct_name; // unpacks all of the struct_name's variables where it's put
 
@@ -488,17 +510,17 @@ For example
 ```
 my_context : context = ---;
 push_context my_context {
-    function_that_allocates_memory_on_the_heap.;
+    function_that_allocates_memory_on_the_heap();
 }
 
 // same as
 push_context --- {
-    function_that_allocates_memory_on_the_heap.;
+    function_that_allocates_memory_on_the_heap();
 }
 
 // same as
 push_context {
-    function_that_allocates_memory_on_the_heap.;
+    function_that_allocates_memory_on_the_heap();
 }
 ```
 When the context is poped off (at the end of the `push_context` brackets),
@@ -540,13 +562,12 @@ print current_context.count; // prints 1
 
 push_context --- {
     current_context.count++;
-    print current_context.count; // prints 1
-    foo.;
-    print current_context.count; // prints 5
-    
+    print(current_context.count); // prints 1
+    foo();
+    print(current_context.count); // prints 5
 }
 
 current_context.count++;
-print current_context.count; // prints 2
+print(current_context.count); // prints 2
 ```
 
