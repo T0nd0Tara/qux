@@ -73,7 +73,7 @@ default conversion between types probably creates more bugs than it helps you.
 Therefor to auto convert your type you'd have to use the keyword `xx`.
 Although it looks like a function (and you can use it just like a function),
 it only does the conversion under the hood when needed.
-i.e. `a : *int8 = xx ptr` will only be used for readabilty, not by the compiler.
+i.e. `a : *int8 = xx another_ptr` will only be used for readabilty, not by the compiler.
 
 Example
 ```
@@ -210,7 +210,7 @@ suddenly to logic is backwords, we have to read from the middle of the line and 
 <BR>
 So what can we do? PIPES!
 ```
-is_title := "random string" .. capitalize .. split .. first .. is_title;
+is_title := "random string" .. capitalize() .. split() .. first() .. is_title();
 ```
 The value the previous statement generated is parsed as the **first** argument for that function.
 <BR>
@@ -218,10 +218,6 @@ If we dont want it to be the first argument, we can use `$`
 ```
 is_title := "random string" .. capitalize() .. split() .. $[0] .. is_title();
 ```
-
-**NOTICE:** the last function (`is_title`) takes one argument, therefore id doesn't need a `.` after it.
-<BR>
-i.e. it translates to `is_title the_result_of_the_last_pipe`.
 
 ## Error Handling
 ```
