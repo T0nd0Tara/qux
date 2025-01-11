@@ -1,5 +1,26 @@
 const std = @import("std");
 
+
+const help_message = 
+\\ Lol you need help?
+;
+
 pub fn main() !void {
-    std.debug.print("Hello world!\n", .{});
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+
+    const allocator = arena.allocator();
+
+    const args = try std.process.argsAlloc(allocator);
+
+    if (args.len != 2) {
+        std.debug.print(help_message, .{});
+        return error.ExpectedFileInput;
+    }
+
+    const file_name = args[1];
+    const program = try std.fs.cwd().readFileAlloc(allocator, file_name, std.math.maxInt(usize));
+    defer allocator.free(program);
+
+    std.debug.print("{s}\n", .{program});
 }
