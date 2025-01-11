@@ -24,6 +24,14 @@ main :: proc() {
     os.exit(1);
   }
 
-  tokens: []lexer.Token = lexer.lex_program(string(program));
+  tokens, error_data := lexer.lex_program(string(program));
+  defer delete(tokens)
+
+  if error_data.is_error {
+    fmt.println("Lexer Error: ", error_data.message);
+    fmt.println("At index: ", error_data.position);
+    os.exit(1);
+  }
+
   fmt.println(tokens);
 }
