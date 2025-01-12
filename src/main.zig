@@ -1,8 +1,14 @@
 const std = @import("std");
+const lexer = @import("lexer.zig");
 
 const help_message =
     \\ Lol you need help?
 ;
+
+const CompileErrors = error{
+    LexerError,
+    ParsingError,
+};
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -23,4 +29,17 @@ pub fn main() !void {
         return err;
     };
     defer allocator.free(program);
+
+    const lexer_data = lexer.lex_program(allocator, program);
+    switch (lexer_data) {
+        lexer.LexerDataEnum.err => |err_data| {
+            std.debug.print("Lexer Error: {s}\nAt position {any}:{any}\n", .{ err_data.message, err_data.line, err_data.column });
+            return error.LexerError;
+        },
+        lexer.LexerDataEnum.ok => |value| {
+            _ = value;
+        },
+    }
+
+    std.debug.print("All is goot", .{});
 }
