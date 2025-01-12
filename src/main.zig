@@ -1,8 +1,7 @@
 const std = @import("std");
 
-
-const help_message = 
-\\ Lol you need help?
+const help_message =
+    \\ Lol you need help?
 ;
 
 pub fn main() !void {
@@ -19,8 +18,9 @@ pub fn main() !void {
     }
 
     const file_name = args[1];
-    const program = try std.fs.cwd().readFileAlloc(allocator, file_name, std.math.maxInt(usize));
+    const program = std.fs.cwd().readFileAlloc(allocator, file_name, std.math.maxInt(usize)) catch |err| {
+        std.debug.print("Couldn't read file {s}\nError: {any}\n", .{ file_name, err });
+        return err;
+    };
     defer allocator.free(program);
-
-    std.debug.print("{s}\n", .{program});
 }
