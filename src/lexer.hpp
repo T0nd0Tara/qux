@@ -20,7 +20,7 @@ inline bool can_be_in_variable_name(char c) {
 }
 
 inline std::optional<Token> get_last_non_typing_token(const std::vector<Token>& tokens) {
-  for (size_t i = tokens.size(); i < tokens.size(); i--) {
+  for (size_t i = tokens.size() - 1; i < tokens.size(); i--) {
     if (tokens[i].type != TokenType::typing) return tokens[i];
   }
   return {};
@@ -32,7 +32,10 @@ std::optional<Token> lex_token(State& state, const std::string_view program) {
 
   for (; state.index < program.length(); state.index ++) {
     const char c = program[state.index];
-    if (c == '(') return {};
+    if (can_be_in_variable_name(c)) {
+      token.value += c;
+      continue;
+    }
 
     if (c == ':') {
       if (token.value.length() > 0) {
@@ -51,10 +54,6 @@ std::optional<Token> lex_token(State& state, const std::string_view program) {
       };
     }
 
-    if (can_be_in_variable_name(c)) {
-      token.value += c;
-      continue;
-    }
     if (isspace(c)) {
       return {};
     }
