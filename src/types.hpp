@@ -18,6 +18,8 @@ enum class TokenType {
     scope_close,
 
     end_statement,
+
+    return_keyword,
 };
 
 struct Token {

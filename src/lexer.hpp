@@ -6,10 +6,18 @@
 #include <vector>
 #include <optional>
 #include <cassert>
+#include <map>
+#include <iostream>
 #include "types.hpp"
 
 
 namespace  lexer {
+
+const std::map<std::string, TokenType> key_words = {
+  {"return", TokenType::return_keyword},
+};
+
+
 struct State {
   size_t index = 0;
   std::vector<Token> tokens = {};
@@ -34,6 +42,18 @@ std::optional<Token> lex_token(State& state, const std::string_view program) {
 
   char c = program[state.index];
   while (isspace(c)) c = progress_char();
+
+  const std::string_view rest_of_program = program.begin() + state.index;
+
+  for (auto const& [key_word, key_word_token_type] : key_words) {
+    if (rest_of_program.starts_with(key_word) && !can_be_in_variable_name(rest_of_program[key_word.size()])) {
+      state.index += key_word.size() - 1; // -1 to accomidate the "+1" in the lex_program function
+      return Token {
+        .type = key_word_token_type,
+      };
+    }
+  }
+
 
   if (can_be_in_variable_name(c)) {
     std::string value;
