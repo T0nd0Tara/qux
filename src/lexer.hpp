@@ -1,11 +1,11 @@
 #pragma once
+#include <cctype>
 #include <cwctype>
 #include <pthread.h>
 #include <string_view>
 #include <vector>
 #include <optional>
-#include <iostream>
-#include "magic_enum.hpp"
+#include <cassert>
 #include "types.hpp"
 
 
@@ -27,46 +27,81 @@ inline std::optional<Token> get_last_non_typing_token(const std::vector<Token>& 
 }
 
 std::optional<Token> lex_token(State& state, const std::string_view program) {
-  Token token;
   std::optional<Token> last_non_typing_token = get_last_non_typing_token(state.tokens);
 
-  for (; state.index < program.length(); state.index ++) {
-    const char c = program[state.index];
+  const auto next_char = [&]() { return program[state.index + 1]; };
+  const auto progress_char = [&]() { return program[++state.index]; };
 
-    if (c == '(') return Token{ .type = TokenType::brace_open };
-    if (c == ')') return Token{ .type = TokenType::brace_close };
+  char c = program[state.index];
+  while (isspace(c)) c = progress_char();
 
-    if (c == '{') return Token{ .type = TokenType::scope_open };
-    if (c == '}') return Token{ .type = TokenType::scope_close };
-    
-    if (can_be_in_variable_name(c)) {
-      token.value += c;
-      if (state.index + 1 == program.length() || 
-        !can_be_in_variable_name(program[state.index + 1])) 
-        return Token {
-          .type = TokenType::variable,
-          .value = token.value,
-        };
-      
-      continue;
+  if (can_be_in_variable_name(c)) {
+    std::string value;
+    value += c;
+
+    while (program.length() != state.index + 1 && 
+           can_be_in_variable_name(next_char())
+    ) {
+      value += progress_char();
     }
-
-    if (c == ':') {
-
-      if (last_non_typing_token.has_value() && last_non_typing_token.value().type == TokenType::decleration)
-        return Token {
-          .type = TokenType::comtime_assignment,
-        };
-
-      return Token {
-        .type = TokenType::decleration,
-      };
-    }
-
-    if (isspace(c)) {
-      continue;
-    }
+    return Token {
+      .type=TokenType::variable,
+      .value=value,
+    };
   }
+
+
+  if (c == '(') return Token{ .type = TokenType::brace_open };
+  if (c == ')') return Token{ .type = TokenType::brace_close };
+
+  if (c == '{') return Token{ .type = TokenType::scope_open };
+  if (c == '}') return Token{ .type = TokenType::scope_close };
+
+  if (c == ';') return Token{ .type = TokenType::end_statement };
+
+  // We takkle a string litteral
+  if (c == '"') {
+    Token token;
+
+    token.type = TokenType::string_literal;
+
+    while (true) {
+      char last_char = progress_char();
+      if (last_char == '"') break;
+      token.value += last_char;
+    }
+
+    return token;
+  }
+
+  if (isdigit(c)) {
+    std::string value;
+    value += c;
+
+    while (c = next_char(),
+      program.length() != state.index + 1 && (isdigit(c) || c == '.')
+    ) {
+      value += progress_char();
+    }
+    return Token {
+      .type=TokenType::number_literal,
+      .value=value,
+    };
+
+  }
+  
+  if (c == ':') {
+
+    if (last_non_typing_token.has_value() && last_non_typing_token.value().type == TokenType::decleration)
+      return Token {
+        .type = TokenType::comtime_assignment,
+      };
+
+    return Token {
+      .type = TokenType::decleration,
+    };
+  }
+
   return {};
 }
 

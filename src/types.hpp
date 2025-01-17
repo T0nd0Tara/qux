@@ -8,11 +8,16 @@ enum class TokenType {
     comtime_assignment,
     typing,
 
+    string_literal,
+    number_literal,
+
     brace_open,
     brace_close,
 
     scope_open,
     scope_close,
+
+    end_statement,
 };
 
 struct Token {
