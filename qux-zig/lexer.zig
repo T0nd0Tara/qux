@@ -36,7 +36,7 @@ const Token = struct {
 
 const State = struct {
     index: usize,
-    tokens: []Token,
+    tokens: vector.DynamicArray(Token, ),
 };
 
 fn get_last_non_typing_token(tokens: []Token) ??Token {
