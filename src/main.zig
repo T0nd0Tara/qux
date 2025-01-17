@@ -28,7 +28,6 @@ pub fn main() !void {
         std.debug.print("Couldn't read file {s}\nError: {any}\n", .{ file_name, err });
         return err;
     };
-    defer allocator.free(program);
 
     const lexer_data = lexer.lex_program(allocator, program);
     switch (lexer_data) {
