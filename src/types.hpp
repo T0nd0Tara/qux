@@ -7,6 +7,12 @@ enum class TokenType {
     runtime_assignment,
     comtime_assignment,
     typing,
+
+    brace_open,
+    brace_close,
+
+    scope_open,
+    scope_close,
 };
 
 struct Token {
