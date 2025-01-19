@@ -4,5 +4,6 @@ CompileFlags:
    - -Wall
    - -Wextra
    - -I/home/amirs/code-libs/magic_enum/include
+   - -DDEBUG
   Compiler: clang++
 
