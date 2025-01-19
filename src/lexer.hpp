@@ -10,7 +10,7 @@
 #include "types.hpp"
 
 
-namespace  lexer {
+namespace lexer {
 
 const std::map<std::string, TokenType> key_words = {
   {"return", TokenType::return_keyword},
