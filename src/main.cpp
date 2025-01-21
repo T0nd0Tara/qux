@@ -6,6 +6,7 @@
 #include <magic_enum.hpp>
 #include "lexer.hpp"
 #include "parser/parser.hpp"
+#include "parser/helpers.hpp"
 
 const std::string help_txt = \
 "Help:\n" \
@@ -35,6 +36,9 @@ int main(int argc, char **argv) {
 
 
   std::vector<Token> tokens = lexer::lex_program(program);
-  std::cout << parser::parse_program(tokens);
+  ast::Root root = parser::parse_program(tokens);
+
+  ast::get_tree(std::cout, &root);
+
   return 0;
 }
