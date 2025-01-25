@@ -35,6 +35,9 @@ struct Type : public Node {
 
 
 struct Variable : public Node {
+  Variable(std::string name_)
+    : name(name_) {}
+  std::string name;
   std::vector<Node*> get_children() const 
   {
     std::vector<Node*> out;
@@ -69,8 +72,19 @@ struct Function : public Variable
 
 struct Assignment : Node {
   std::unique_ptr<Variable> variable;
-  std::unique_ptr<Type> type;
   bool compile_type;
+
+  std::vector<Node*> get_children() const 
+  {
+    return std::vector<Node*> {
+      variable.get()
+    };
+  }
+};
+
+struct Decleration : Node {
+  std::unique_ptr<Variable> variable;
+  std::unique_ptr<Type> type;
 
   std::vector<Node*> get_children() const 
   {
