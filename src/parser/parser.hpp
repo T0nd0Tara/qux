@@ -23,7 +23,7 @@ void parse_section(const std::vector<Token>& tokens, ast::Nodes& out, size_t& i)
     switch (token.type) {
       case TokenType::decleration: {
         if (prev_token().type != TokenType::variable) {
-          std::cerr << "Declering after token " << magic_enum::enum_name((prev_token().type);
+          std::cerr << "Declering after token " << magic_enum::enum_name(prev_token().type);
           assert(false);
         }
 
