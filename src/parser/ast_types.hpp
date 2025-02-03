@@ -1,110 +1,49 @@
 #pragma once
+
+#include "../variable_types.hpp"
 #include <memory>
 #include <vector>
-
 namespace ast {
-struct Node {
-  virtual std::vector<Node*> get_children() const = 0;
+enum class NodeType {
+  root,
+  variable,
+  function_literal,
 };
 
-typedef std::vector<std::unique_ptr<Node>> Nodes;
-
-struct Root : public Node 
-{
-  Nodes nodes;
-  
-  std::vector<Node*> get_children() const 
-  {
-    std::vector<Node*> out(nodes.size());
-
-    for (const auto& node : nodes)
-      out.push_back(node.get());
-
-    return out;
-  }
-};
-
-struct Type : public Node {
-  std::vector<Node*> get_children() const 
-  {
-    std::vector<Node*> out;
-    return out;
-  }
-};
-
-
-
-struct Variable : public Node {
-  Variable(std::string name_)
-    : name(name_) {}
+struct Parameter {
+  VariableType type;
   std::string name;
-  std::vector<Node*> get_children() const 
-  {
-    std::vector<Node*> out;
-    return out;
-  }
-
 };
 
-struct Parameter : public Variable {
+struct Node;
+
+struct FunctionData {
+  std::vector<Parameter> parameters;
+  VariableType return_type;
+  std::vector<std::unique_ptr<Node>> body;
 };
 
-typedef std::vector<std::unique_ptr<Parameter>> Parameters;
 
-struct Function : public Variable 
-{
-  Parameters params;
-  Nodes body;
 
-  std::unique_ptr<Type> return_type;
+struct Variable {
+  VariableType type;
+  std::string name;
+  union {
+    int i;
+    float f;
+    FunctionData function;
 
-  std::vector<Node*> get_children() const 
-  {
-    std::vector<Node*> out(params.size() + body.size() + 1); // +1 for the return type
-    for (const auto& node : params) out.push_back(node.get());
-    for (const auto& node : body) out.push_back(node.get());
-
-    out.push_back(return_type.get());
-
-    return out;
-  }
+  } value;
 };
 
-struct Assignment : Node {
-  std::unique_ptr<Variable> variable;
-  bool compile_type;
+struct Node {
+  NodeType type;
 
-  std::vector<Node*> get_children() const 
-  {
-    return std::vector<Node*> {
-      variable.get()
-    };
-  }
-};
-
-struct Decleration : Node {
-  std::unique_ptr<Variable> variable;
-  std::unique_ptr<Type> type;
-
-  std::vector<Node*> get_children() const 
-  {
-    return std::vector<Node*> {
-      variable.get(), type.get()
-    };
-  }
-};
-
-struct Call : Node {
-  std::unique_ptr<Function> variable;
-
-  std::vector<Node*> get_children() const 
-  {
-    return std::vector<Node*> {
-      variable.get(),
-    };
-  }
+  union {
+    std::vector<Node> nodes; // for NodeType::root
+    Variable variable; // for NodeType::variable
+  } node_data;
 };
 
 }
-
 
