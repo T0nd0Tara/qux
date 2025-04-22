@@ -76,19 +76,22 @@ struct lexctx;
 %code {
 struct lexctx
 {
-  std::stack<std::map<std::string, identifier>> scopes;
+  std::list<std::map<std::string, identifier>> scopes;
 public:
   const identifier& define(identifier&& f) {
-    auto [it, success] = scopes.top().emplace(f.name, std::move(f));
+    auto [it, success] = scopes.begin()->emplace(f.name, std::move(f));
     return it->second;
   }
 
   expression use(const std::string& name) {
-    
+    for (auto it_scope = scopes.begin(); it_scope != scopes.end(); it_scope++) {
+      if (auto ident = it_scope->find(name); ident != it_scope->end())
+        return ident->second;
+    }
   }
 
-  void push_scope() { scopes.push(std::move(std::map<std::string, identifier>())); }
-  void pop_scope() { scopes.pop(); }
+  void push_scope() { scopes.emplace_front(); }
+  void pop_scope() { scopes.pop_front(); }
 };
 
 } // %code
