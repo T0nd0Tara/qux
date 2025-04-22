@@ -1,6 +1,6 @@
 %skeleton "lalr1.cc" // -*- C++ -*-
 %require "3.8.2"
-%define parser_class_name {conj_parser}
+%define api.parser.class {qux_parser}
 %define api.token.constructor
 %define api.value.type variant
 %define parse.assert
@@ -16,18 +16,19 @@
 #include <iostream>
 #include <algorithm>
 #include <stack>
+#include <cstdint>
 
 enum class id_type {
         undefined, /* undefined */ 
         // function,  /* a pointer to given function */ 
-        parameter, /* one of the function params */ 
+        // parameter, /* one of the function params */ 
         variable,  /* a local variable */
 };
 
 struct identifier
 {
     id_type type  = id_type::undefined;
-    std::size_t     index = 0; // function#, parameter# within surrounding function, variable#
+    size_t     index = 0; // function#, parameter# within surrounding function, variable#
     std::string     name;
 };
 
@@ -47,7 +48,7 @@ struct expression {
     ex_type type;
     identifier      ident{};    // For ident
     std::string     strvalue{}; // For string
-    std::int32_t    numvalue=0; // For number
+    int32_t    numvalue=0; // For number
     expr_vec        params;
     // For for() and if(), the first item is the condition and the rest are the contingent code
     // For fcall, the first parameter is the variable to use as function
@@ -59,7 +60,7 @@ struct expression {
     expression(const identifier& i) : type(ex_type::ident),  ident(i)            { }
     expression(identifier&& i)      : type(ex_type::ident),  ident(std::move(i)) { }
     expression(std::string&& s)     : type(ex_type::string), strvalue(std::move(s)) { }
-    expression(std::int32_t v)              : type(ex_type::number), numvalue(v) {}
+    expression(int32_t v)              : type(ex_type::number), numvalue(v) {}
 
     bool is_pure() const;
 
@@ -78,7 +79,8 @@ struct lexctx
   std::stack<std::map<std::string, identifier>> scopes;
 public:
   const identifier& define(identifier&& f) {
-    scopes.top().emplace(f.name, std::move(f));
+    auto [it, success] = scopes.top().emplace(f.name, std::move(f));
+    return it->second;
   }
 
   expression use(const std::string& name) {
@@ -87,7 +89,7 @@ public:
 
   void push_scope() { scopes.push(std::move(std::map<std::string, identifier>())); }
   void pop_scope() { scopes.pop(); }
-}
+};
 
 } // %code
 
