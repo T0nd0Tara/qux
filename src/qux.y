@@ -200,6 +200,10 @@ void yy::qux_parser::error(const location_type& l, const std::string& m)
 
 int main(int argc, char** argv)
 {
+    if (argc < 2) {
+      std::cerr << "Input file must be given\n";
+      return 1;
+    }
     std::string filename = argv[1];
     std::ifstream f(filename);
     std::string buffer(std::istreambuf_iterator<char>(f), {});
