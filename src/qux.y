@@ -76,6 +76,8 @@ struct lexctx;
 %code {
 struct lexctx
 {
+    const char* cursor;
+    yy::location loc;
   std::list<std::map<std::string, identifier>> scopes;
 public:
   const identifier& define(identifier&& f) {
@@ -88,11 +90,15 @@ public:
       if (auto ident = it_scope->find(name); ident != it_scope->end())
         return ident->second;
     }
+
+    throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
   }
 
   void push_scope() { scopes.emplace_front(); }
   void pop_scope() { scopes.pop_front(); }
 };
+
+namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 
 #define M(x) std::move(x)
 
@@ -109,9 +115,8 @@ public:
 %left '*' '/' '%'
 %left '(' '['
 %type<int32_t> NUMLITERAL
-%type<std::string> IDENTIFIER STRINGLITERAL parameter
+%type<std::string> IDENTIFIER STRINGLITERAL
 %type<expression>  expr
-%nterm <std::vector<std::string>> parameters
 %%
 
 library: { ctx.push_scope(); } declerations { ctx.pop_scope(); };
@@ -128,17 +133,87 @@ stmnt: stmnts
 stmnts: '{' stmnts1 '}';
 stmnts1: stmnt stmnts1
        | %empty;
-parameters: parameters ',' parameter { $$ = M($1); $$.push_back($3); }
-          | %empty { $$ = {}; };
-parameter: IDENTIFIER { $$ = M($1); };
+parameters: parameters ',' parameter 
+          | %empty;
+parameter: IDENTIFIER 
 expr: NUMLITERAL { $$ = $1; }
     | STRINGLITERAL { $$ = M($1); }
     | IDENTIFIER { $$ = ctx.use($1); }
     | '(' expr ')'  { $$ = $2; }
-    | IDENTIFIER '(' parameters ')' { $$ = ctx.call($1, $3); }
+    // | IDENTIFIER '(' ')'
     | expr '+' expr
     | expr '-' expr %prec '+'
     | expr '/' expr
     | expr '*' expr %prec '/'
     | expr ',' expr;
 %%
+yy::qux_parser::symbol_type yy::yylex(lexctx& ctx)
+{
+    const char* anchor = ctx.cursor;
+    ctx.loc.step();
+    auto s = [&](auto func, auto&&... params) 
+    { 
+      ctx.loc.columns(ctx.cursor - anchor);
+      return func(params..., ctx.loc);
+    };
+
+%{ /* Begin re2c lexer */
+re2c:yyfill:enable   = 0;
+re2c:define:YYCTYPE  = "char";
+re2c:define:YYCURSOR = "ctx.cursor";
+
+// Keywords:
+"return"                { return s(qux_parser::make_RETURN); }
+"for"                   { return s(qux_parser::make_FOR); }
+"if"                    { return s(qux_parser::make_IF); }
+
+// Identifiers:
+[a-zA-Z_] [a-zA-Z_0-9]* { return s(qux_parser::make_IDENTIFIER, std::string(anchor,ctx.cursor)); }
+
+// String and integer literals:
+"\"" [^"]* "\""         { return s(qux_parser::make_STRINGLITERAL, std::string(anchor+1, ctx.cursor-1)); }
+[0-9]+                  { return s(qux_parser::make_NUMLITERAL, std::stol(std::string(anchor,ctx.cursor))); }
+
+// Whitespace and comments:
+"\000"                  { return s(qux_parser::make_END); }
+"\r\n" | [\r\n]         { ctx.loc.lines();   return yylex(ctx); }
+"//" [^\r\n]*           {                    return yylex(ctx); }
+[\t\v\b\f ]             { ctx.loc.columns(); return yylex(ctx); }
+
+// Multi-char operators and any other character (either an operator or an invalid symbol):
+"&&"                    { return s(qux_parser::make_AND); }
+"||"                    { return s(qux_parser::make_OR); }
+"++"                    { return s(qux_parser::make_PP); }
+"--"                    { return s(qux_parser::make_MM); }
+"!="                    { return s(qux_parser::make_NE); }
+"=="                    { return s(qux_parser::make_EQ); }
+.                       { return s([](auto...s){return qux_parser::symbol_type(s...);}, qux_parser::token_type(ctx.cursor[-1]&0xFF)); } // Return that character
+%} /* End lexer */
+}
+
+#include <fstream>
+void yy::qux_parser::error(const location_type& l, const std::string& m)
+{
+    std::cerr << (l.begin.filename ? l.begin.filename->c_str() : "(undefined)");
+    std::cerr << ':' << l.begin.line << ':' << l.begin.column << '-' << l.end.column << ": " << m << '\n';
+}
+
+int main(int argc, char** argv)
+{
+    std::string filename = argv[1];
+    std::ifstream f(filename);
+    std::string buffer(std::istreambuf_iterator<char>(f), {});
+
+    lexctx ctx;
+    ctx.cursor = buffer.c_str();
+    ctx.loc.begin.filename = &filename;
+    ctx.loc.end.filename   = &filename;
+
+    yy::qux_parser parser(ctx);
+    parser.parse();
+    // std::vector<function> func_list = std::move(ctx.func_list);
+
+    // for(const auto& f: func_list) std::cerr << stringify_tree(f);
+}
+
+
