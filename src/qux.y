@@ -18,17 +18,17 @@
 #include <stack>
 #include <cstdint>
 
-enum class id_type {
-        undefined, /* undefined */ 
-        // function,  /* a pointer to given function */ 
-        // parameter, /* one of the function params */ 
-        variable,  /* a local variable */
-};
-
+// enum class id_type {
+//         undefined, /* undefined */ 
+//         // function,  /* a pointer to given function */ 
+//         // parameter, /* one of the function params */ 
+//         variable,  /* a local variable */
+// };
+//
 struct identifier
 {
-    id_type type  = id_type::undefined;
-    size_t     index = 0; // function#, parameter# within surrounding function, variable#
+    // id_type type  = id_type::undefined;
+    // size_t     index = 0; // function#, parameter# within surrounding function, variable#
     std::string     name;
 };
 
@@ -94,6 +94,8 @@ public:
   void pop_scope() { scopes.pop_front(); }
 };
 
+#define M(x) std::move(x)
+
 } // %code
 
 %token END 0
@@ -106,14 +108,18 @@ public:
 %left '+' '-'
 %left '*' '/' '%'
 %left '(' '['
+%type<int32_t> NUMLITERAL
+%type<std::string> IDENTIFIER STRINGLITERAL parameter
+%type<expression>  expr
+%nterm <std::vector<std::string>> parameters
 %%
 
-library:   declerations;
+library: { ctx.push_scope(); } declerations { ctx.pop_scope(); };
 declerations: declerations decleration
 |          %empty;
-decleration: IDENTIFIER ':' ':' rvalue ';'
+decleration: IDENTIFIER ':' ':' rvalue ';' { ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
 rvalue: function;
-function: '(' paramteres ')' stmnt;
+function: '(' parameters ')' stmnt;
 stmnt: stmnts
      | decleration ';'
      | "if" expr stmnt
@@ -122,14 +128,14 @@ stmnt: stmnts
 stmnts: '{' stmnts1 '}';
 stmnts1: stmnt stmnts1
        | %empty;
-paramteres: paramteres ',' parameter
-          | %empty;
-parameter: IDENTIFIER;
-expr: NUMLITERAL
-    | STRINGLITERAL
-    | IDENTIFIER
-    | '(' expr ')'
-    | IDENTIFIER '(' ')'
+parameters: parameters ',' parameter { $$ = M($1); $$.push_back($3); }
+          | %empty { $$ = {}; };
+parameter: IDENTIFIER { $$ = M($1); };
+expr: NUMLITERAL { $$ = $1; }
+    | STRINGLITERAL { $$ = M($1); }
+    | IDENTIFIER { $$ = ctx.use($1); }
+    | '(' expr ')'  { $$ = $2; }
+    | IDENTIFIER '(' parameters ')' { $$ = ctx.call($1, $3); }
     | expr '+' expr
     | expr '-' expr %prec '+'
     | expr '/' expr
