@@ -76,9 +76,21 @@ struct lexctx;
 %code {
 struct lexctx
 {
-    const char* cursor;
-    yy::location loc;
+  const char* cursor;
+  yy::location loc;
   std::list<std::map<std::string, identifier>> scopes;
+
+protected:
+
+  identifier* get(const std::string& name) {
+    
+    for (auto it_scope = scopes.begin(); it_scope != scopes.end(); it_scope++) {
+      if (auto ident = it_scope->find(name); ident != it_scope->end())
+        return &ident->second;
+    }
+    return nullptr;
+  }
+
 public:
   const identifier& define(identifier&& f) {
     auto [it, success] = scopes.begin()->emplace(f.name, std::move(f));
@@ -86,10 +98,15 @@ public:
   }
 
   expression use(const std::string& name) {
-    for (auto it_scope = scopes.begin(); it_scope != scopes.end(); it_scope++) {
-      if (auto ident = it_scope->find(name); ident != it_scope->end())
-        return ident->second;
-    }
+    identifier* ident = get(name);
+    if (ident) return *ident;
+
+    throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
+  }
+
+  expression call(const std::string& name, const std::vector<expression>& params) {
+    identifier* ident = get(name);
+    if (ident) return expression(ex_type::fcall, *ident);
 
     throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
   }
@@ -117,6 +134,7 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 %type<int32_t> NUMLITERAL
 %type<std::string> IDENTIFIER STRINGLITERAL
 %type<expression>  expr
+%type<std::vector<expression>>  exprs
 %%
 
 library: { ctx.push_scope(); } declerations { ctx.pop_scope(); };
@@ -127,6 +145,7 @@ rvalue: function;
 function: '(' parameters ')' stmnt;
 stmnt: stmnts
      | decleration ';'
+     | expr ';'
      | "if" expr stmnt
      | "for" expr stmnt
      | "return" expr ';';
@@ -140,12 +159,15 @@ expr: NUMLITERAL { $$ = $1; }
     | STRINGLITERAL { $$ = M($1); }
     | IDENTIFIER { $$ = ctx.use($1); }
     | '(' expr ')'  { $$ = $2; }
-    // | IDENTIFIER '(' ')'
+    | IDENTIFIER '(' exprs ')' { $$ = ctx.call($1, $3); }
     | expr '+' expr
     | expr '-' expr %prec '+'
     | expr '/' expr
     | expr '*' expr %prec '/'
     | expr ',' expr;
+exprs: exprs ',' expr { $$ = M($1); $$.push_back($3); }
+     | expr           { $$ = { $1 }; }
+     | %empty         { $$ = {}; }
 %%
 yy::qux_parser::symbol_type yy::yylex(lexctx& ctx)
 {
