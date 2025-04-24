@@ -122,14 +122,15 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 } // %code
 
 %token END 0
-%token RETURN "return" FOR "for" IF "if" ELSE "else" IDENTIFIER NUMLITERAL STRINGLITERAL
-%token OR "||" AND "&&" EQ "==" NE "!=" PP "++" MM "--" 
+%token RETURN FOR IF ELSE IDENTIFIER NUMLITERAL STRINGLITERAL
+%token OR AND EQ NE PP MM
+%token PLUS MINUS MULT DIV MOD
 %left ','
-%left "||"
-%left "&&"
-%left "==" "!="
-%left '+' '-'
-%left '*' '/' '%'
+%left OR
+%left AND
+%left EQ NE
+%left PLUS MINUS
+%left MULT DIV MOD
 %left '(' '['
 %type<int32_t> NUMLITERAL
 %type<std::string> IDENTIFIER STRINGLITERAL
@@ -146,9 +147,9 @@ function: '(' parameters ')' stmnt;
 stmnt: stmnts
      | decleration ';'
      | expr ';'
-     | "if" expr stmnt
-     | "for" expr stmnt
-     | "return" expr ';';
+     | IF expr stmnt
+     | FOR expr stmnt
+     | RETURN expr ';';
 stmnts: '{' stmnts1 '}';
 stmnts1: stmnt stmnts1
        | %empty;
@@ -160,10 +161,10 @@ expr: NUMLITERAL { $$ = $1; }
     | IDENTIFIER { $$ = ctx.use($1); }
     | '(' expr ')'  { $$ = $2; }
     | IDENTIFIER '(' exprs ')' { $$ = ctx.call($1, $3); }
-    | expr '+' expr
-    | expr '-' expr %prec '+'
-    | expr '/' expr
-    | expr '*' expr %prec '/'
+    | expr PLUS expr
+    | expr MINUS expr %prec '+'
+    | expr DIV expr
+    | expr MULT expr %prec '/'
     | expr ',' expr;
 exprs: exprs ',' expr { $$ = M($1); $$.push_back($3); }
      | expr           { $$ = { $1 }; }
@@ -244,7 +245,7 @@ int main(int argc, char** argv)
     parser.parse();
     // std::vector<function> func_list = std::move(ctx.func_list);
 
-    // for(const auto& f: func_list) std::cerr << stringify_tree(f);
+    // for(const auto& f: func_list) std::cout << stringify_tree(f);
 }
 
 
