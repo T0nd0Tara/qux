@@ -74,27 +74,40 @@ struct lexctx;
 %param { lexctx& ctx }
 
 %code {
+struct Statement {
+
+};
+struct Scope {
+  std::map<std::string, Statement> statements;
+  std::list<Scope> scopes;
+
+  Scope* parent = nullptr;
+
+  Scope& create_child() {
+    Scope& child = scopes.emplace_back();
+
+    child.parent = this;
+    return child;
+  }
+};
 struct lexctx
 {
   const char* cursor;
   yy::location loc;
-  std::list<std::map<std::string, identifier>> scopes;
+  Scope scope;
 
+  Scope& current_scope;
+
+  lexctx(): current_scope(scope) {}
 protected:
 
   identifier* get(const std::string& name) {
-    
-    for (auto it_scope = scopes.begin(); it_scope != scopes.end(); it_scope++) {
-      if (auto ident = it_scope->find(name); ident != it_scope->end())
-        return &ident->second;
-    }
-    return nullptr;
+    return current_scope.get(name);
   }
 
 public:
   const identifier& define(identifier&& f) {
-    auto [it, success] = scopes.begin()->emplace(f.name, std::move(f));
-    return it->second;
+    return current_scope.define(f);
   }
 
   expression use(const std::string& name) {
@@ -111,8 +124,13 @@ public:
     throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
   }
 
-  void push_scope() { scopes.emplace_front(); }
-  void pop_scope() { scopes.pop_front(); }
+  void push_scope() { 
+    current_scope = current_scope.create_child();
+  }
+  void pop_scope() { 
+    if (current_scope.parent == nullptr) throw yy::qux_parser::syntax_error(loc, "Tried to pop root scope");
+    current_scope = *current_scope.parent;
+  }
 };
 
 namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
@@ -143,14 +161,14 @@ declerations: declerations decleration
 |          %empty;
 decleration: IDENTIFIER ':' ':' rvalue ';' { ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
 rvalue: function;
-function: '(' parameters ')' stmnt;
+function: { ctx.push_scope(); } '(' parameters ')' stmnt { ctx.pop_scope(); };
 stmnt: stmnts
      | decleration ';'
      | expr ';'
      | IF expr stmnt
      | FOR expr stmnt
      | RETURN expr ';';
-stmnts: '{' stmnts1 '}';
+stmnts: { ctx.push_scope(); } '{' stmnts1 '}' { ctx.pop_scope(); };
 stmnts1: stmnt stmnts1
        | %empty;
 parameters: parameters ',' parameter 
