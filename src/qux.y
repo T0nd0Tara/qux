@@ -228,7 +228,12 @@ int main(int argc, char** argv)
     }
     std::string filename = argv[1];
     std::ifstream f(filename);
+    if (!f.is_open()) {
+      std::cerr << "Couldn't open file '" << filename << "'. exiting...\n";
+      return 1;
+    }
     std::string buffer(std::istreambuf_iterator<char>(f), {});
+    f.close();
 
     lexctx ctx;
     ctx.cursor = buffer.c_str();
