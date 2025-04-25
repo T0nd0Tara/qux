@@ -4,12 +4,14 @@ CXXFLAGS = -std=c++20
 
 all: qux
 
-qux.cc: qux.cc.re
-	re2c -o "$@" "$<"
+clean:
+	rm -f qux.cc qux.re.cc qux
 
-qux.cc.re: src/qux.y
+qux.cc: qux.re.cc
+	re2c -o $@ $<
+
+qux.re.cc: src/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
 qux: qux.cc
 	$(CXX) $(CXXFLAGS) -o $@ $<
-
