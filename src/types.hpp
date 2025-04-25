@@ -71,7 +71,8 @@ struct expression {
 struct Statement {};
 
 struct Scope {
-  std::map<std::string, Statement> statements;
+  std::list<Statement> statements;
+  std::map<std::string, identifier> identifiers;
   std::list<Scope> scopes;
 
   Scope *parent = nullptr;
@@ -81,5 +82,11 @@ struct Scope {
 
     child.parent = this;
     return child;
+  }
+
+  identifier *get(std::string_view name) { return nullptr; }
+  identifier &define(identifier &f) {
+    auto [it, success] = identifiers.insert({f.name, f});
+    return it->second;
   }
 };
