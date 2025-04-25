@@ -4,6 +4,9 @@ CXXFLAGS = -std=c++20
 
 all: qux
 
+test: qux
+	deno run --allow-read test/main.ts
+
 clean:
 	rm -f qux.cc qux.re.cc qux
 
