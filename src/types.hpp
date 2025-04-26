@@ -28,11 +28,17 @@ enum class ex_type {
   string,
   number,
   ident, /* atoms */
-  add,
+  plus,
+  minus,
+  mult,
+  div,
   neg,
   eq, /* transformation */
   cor,
   cand,
+  comp, // compound statement
+        // (i.e. a statement that just contain multiple statements)
+  cond,
   loop, /* logic. Loop is: for(param0) { param1..n } */
   addrof,
   deref, /* pointer handling */
@@ -73,7 +79,7 @@ struct expression {
 struct Statement {};
 
 struct Scope {
-  std::list<expression> expressions;
+  expression expr;
   std::map<std::string, identifier> identifiers;
   std::list<Scope> scopes;
 
@@ -84,7 +90,6 @@ struct Scope {
   Scope *create_child() { return &scopes.emplace_back(this); }
 
   identifier *get(std::string name) {
-
     if (auto search = identifiers.find(name); search != identifiers.end())
       return &search->second;
     if (parent)
