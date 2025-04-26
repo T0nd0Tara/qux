@@ -84,9 +84,14 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 // TODO: currently there is no difference between decleration, statement and expression, should there be?
 %type<expression>  expr declerations decleration stmnt stmnts stmnts1
 %type<std::vector<expression>>  exprs 
+
+/* Generate the parser description file. */
+%verbose
+/* Enable run-time traces (yydebug). */
+%define parse.trace
 %%
 
-library: { ctx.push_scope(); } declerations { ctx.current_scope->expr = M($2); ctx.pop_scope(); };
+library: { ctx.push_scope(); } declerations {  ctx.pop_scope(); ctx.current_scope->expr = M($2); };
 declerations: declerations decleration { $$ = M($1); $$.params.push_back(M($2)); }
             | %empty                   { $$ = expression(ex_type::comp); };
 decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
@@ -206,6 +211,7 @@ int main(int argc, char** argv)
     ctx.loc.end.filename   = &filename;
 
     yy::qux_parser parser(ctx);
+    parser.set_debug_level(1);
     parser.parse();
     std::cout << stringify_tree(ctx);
     // std::vector<function> func_list = std::move(ctx.func_list);
