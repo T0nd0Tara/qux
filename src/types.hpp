@@ -84,8 +84,9 @@ struct Scope {
   Scope *create_child() { return &scopes.emplace_back(this); }
 
   identifier *get(std::string name) {
-    if (identifiers.contains(name))
-      return &identifiers.at(name);
+
+    if (auto search = identifiers.find(name); search != identifiers.end())
+      return &search->second;
     if (parent)
       return parent->get(name);
     return nullptr;
