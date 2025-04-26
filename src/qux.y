@@ -9,6 +9,7 @@
 
 %code requires
 {
+#include <magic_enum.hpp>
 #include "src/types.hpp"
 
 struct lexctx;
@@ -23,18 +24,18 @@ struct lexctx
   yy::location loc;
   Scope scope;
 
-  Scope& current_scope;
+  Scope* current_scope;
 
-  lexctx(): current_scope(scope) {}
+  lexctx(): current_scope(&scope) {}
 protected:
 
   identifier* get(const std::string& name) {
-    return current_scope.get(name);
+    return current_scope->get(name);
   }
 
 public:
   const identifier& define(identifier&& f) {
-    return current_scope.define(f);
+    return current_scope->define(f);
   }
 
   expression use(const std::string& name) {
@@ -52,11 +53,11 @@ public:
   }
 
   void push_scope() { 
-    current_scope = current_scope.create_child();
+    current_scope = current_scope->create_child();
   }
   void pop_scope() { 
-    if (current_scope.parent == nullptr) throw yy::qux_parser::syntax_error(loc, "Tried to pop root scope");
-    current_scope = *current_scope.parent;
+    if (current_scope->parent == nullptr) throw yy::qux_parser::syntax_error(loc, "Tried to pop root scope");
+    current_scope = current_scope->parent;
   }
 };
 
@@ -160,11 +161,29 @@ re2c:define:YYCURSOR = "ctx.cursor";
 }
 
 #include <fstream>
+#include "textbox.hh"
 void yy::qux_parser::error(const location_type& l, const std::string& m)
 {
     std::cerr << (l.begin.filename ? l.begin.filename->c_str() : "(undefined)");
     std::cerr << ':' << l.begin.line << ':' << l.begin.column << '-' << l.end.column << ": " << m << '\n';
 }
+
+
+std::string stringify_tree(lexctx& ctx) {
+    textbox result;
+    for (const auto& expr : ctx.scope.expressions)
+      result.putbox(2,0, create_tree_graph(expr, 200,
+          [&](const expression& e)
+          {
+            return std::string(magic_enum::enum_name(e.type));
+          },
+          [](const expression& e) { return std::make_pair(e.params.cbegin(), e.params.cend()); },
+          [](const expression& e) { return e.params.size() >= 1; }, // whether simplified horizontal layout can be used
+          [](const expression&  ) { return true; },                 // whether extremely simplified horiz layout can be used
+          [](const expression& e) { return e.type == ex_type::loop; }));
+    return result.to_string();
+}
+
 
 int main(int argc, char** argv)
 {
@@ -188,6 +207,7 @@ int main(int argc, char** argv)
 
     yy::qux_parser parser(ctx);
     parser.parse();
+    std::cout << stringify_tree(ctx);
     // std::vector<function> func_list = std::move(ctx.func_list);
 
     // for(const auto& f: func_list) std::cout << stringify_tree(f);

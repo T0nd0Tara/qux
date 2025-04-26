@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <list>
@@ -47,10 +48,11 @@ struct expression {
   identifier ident{};     // For ident
   std::string strvalue{}; // For string
   int32_t numvalue = 0;   // For number
-  expr_vec params;
+  //
   // For for() and if(), the first item is the condition and the rest are the
   // contingent code For fcall, the first parameter is the variable to use as
   // function
+  expr_vec params;
 
   template <typename... T>
   expression(ex_type t, T &&...args)
@@ -71,20 +73,23 @@ struct expression {
 struct Statement {};
 
 struct Scope {
-  std::list<Statement> statements;
+  std::list<expression> expressions;
   std::map<std::string, identifier> identifiers;
   std::list<Scope> scopes;
 
   Scope *parent = nullptr;
 
-  Scope &create_child() {
-    Scope &child = scopes.emplace_back();
+  Scope(Scope *parent_scope = nullptr) : parent(parent_scope) {}
 
-    child.parent = this;
-    return child;
+  Scope *create_child() { return &scopes.emplace_back(this); }
+
+  identifier *get(std::string name) {
+    if (identifiers.contains(name))
+      return &identifiers.at(name);
+    if (parent)
+      return parent->get(name);
+    return nullptr;
   }
-
-  identifier *get(std::string_view name) { return nullptr; }
   identifier &define(identifier &f) {
     auto [it, success] = identifiers.insert({f.name, f});
     return it->second;
