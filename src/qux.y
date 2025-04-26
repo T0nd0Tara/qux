@@ -68,7 +68,7 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 } // %code
 
 %token END 0
-%token RETURN FOR IF ELSE IDENTIFIER NUMLITERAL STRINGLITERAL
+%token RETURN FOR IF ELSE IDENTIFIER NUMLITERAL STRINGLITERAL COMP
 %token OR AND EQ NE PP MM
 %token PLUS MINUS MULT DIV MOD
 %left ','
@@ -77,41 +77,42 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 %left EQ NE
 %left PLUS MINUS
 %left MULT DIV MOD
+%left COMP
 %left '(' '['
 %type<int32_t> NUMLITERAL
 %type<std::string> IDENTIFIER STRINGLITERAL
-%type<expression>  expr
-%type<std::vector<expression>>  exprs
+// TODO: currently there is no difference between decleration, statement and expression, should there be?
+%type<expression>  expr declerations decleration stmnt stmnts stmnts1
+%type<std::vector<expression>>  exprs 
 %%
 
-library: { ctx.push_scope(); } declerations { ctx.pop_scope(); };
-declerations: declerations decleration
-|          %empty;
-decleration: IDENTIFIER ':' ':' rvalue ';' { ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
+library: { ctx.push_scope(); } declerations { ctx.current_scope->expr = M($2); ctx.pop_scope(); };
+declerations: declerations decleration { $$ = M($1); $$.params.push_back(M($2)); }
+            | %empty                   { $$ = expression(ex_type::comp); };
+decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
 rvalue: function;
 function: { ctx.push_scope(); } '(' parameters ')' stmnt { ctx.pop_scope(); };
-stmnt: stmnts
-     | decleration ';'
-     | expr ';'
-     | IF expr stmnt
-     | FOR expr stmnt
-     | RETURN expr ';';
-stmnts: { ctx.push_scope(); } '{' stmnts1 '}' { ctx.pop_scope(); };
-stmnts1: stmnt stmnts1
-       | %empty;
+stmnt: stmnts           { $$ = M($1); }
+     | decleration ';'  { $$ = M($1); }
+     | expr ';'         { $$ = M($1); }
+     | IF expr stmnt    { $$ = expression(ex_type::cond, $2, $3); }
+     | FOR expr stmnt   { $$ = expression(ex_type::loop, $2, $3); }
+     | RETURN expr ';'  { $$ = expression(ex_type::ret, $2); };
+stmnts: { ctx.push_scope(); } '{' stmnts1 '}' { $$ = M($3); ctx.pop_scope(); };
+stmnts1: stmnts1 stmnt { $$ = M($1); $$.params.push_back(M($2)); }
+       | %empty { $$ = expression(); };
 parameters: parameters ',' parameter 
           | %empty;
 parameter: IDENTIFIER 
 expr: NUMLITERAL { $$ = $1; }
     | STRINGLITERAL { $$ = M($1); }
-    | IDENTIFIER { $$ = ctx.use($1); }
-    | '(' expr ')'  { $$ = $2; }
-    | IDENTIFIER '(' exprs ')' { $$ = ctx.call($1, $3); }
-    | expr PLUS expr
-    | expr MINUS expr %prec '+'
-    | expr DIV expr
-    | expr MULT expr %prec '/'
-    | expr ',' expr;
+    | IDENTIFIER   %prec '(' { $$ = ctx.use($1); }
+    | '(' expr ')' %prec COMP { $$ = $2; }
+    | IDENTIFIER '(' exprs ')'  { $$ = ctx.call($1, $3); }
+    | expr PLUS expr  %prec PLUS { $$ = expression(ex_type::plus, $1, $3); }
+    | expr MINUS expr %prec PLUS { $$ = expression(ex_type::minus, $1, $3); }
+    | expr DIV expr   %prec DIV  { $$ = expression(ex_type::div, $1, $3); }
+    | expr MULT expr  %prec MULT { $$ = expression(ex_type::mult, $1, $3); };
 exprs: exprs ',' expr { $$ = M($1); $$.push_back($3); }
      | expr           { $$ = { $1 }; }
      | %empty         { $$ = {}; }
@@ -171,8 +172,7 @@ void yy::qux_parser::error(const location_type& l, const std::string& m)
 
 std::string stringify_tree(lexctx& ctx) {
     textbox result;
-    for (const auto& expr : ctx.scope.expressions)
-      result.putbox(2,0, create_tree_graph(expr, 200,
+      result.putbox(2,0, create_tree_graph(ctx.scope.expr, 200,
           [&](const expression& e)
           {
             return std::string(magic_enum::enum_name(e.type));
