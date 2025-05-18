@@ -1,6 +1,6 @@
 BISON = bison
 CXX = g++
-CXXFLAGS = -std=c++20 -I/home/amirs/code-libs/magic_enum/include
+CXXFLAGS = -std=c++20 -I/home/amirs/code-libs/magic_enum/include -DYYDEBUG=1 -g -ggdb
 
 all: qux
 
