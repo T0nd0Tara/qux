@@ -1,17 +1,15 @@
+#include "lexer.hpp"
+#include "parser/helpers.hpp"
+#include "parser/parser.hpp"
 #include <cstdio>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <magic_enum/magic_enum.hpp>
 #include <sstream>
 #include <vector>
-#include <magic_enum.hpp>
-#include "lexer.hpp"
-#include "parser/parser.hpp"
-#include "parser/helpers.hpp"
 
-const std::string help_txt = \
-"Help:\n" \
-"-----\n" \
-;
+const std::string help_txt = "Help:\n"
+                             "-----\n";
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -26,14 +24,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::string program; 
+  std::string program;
   {
     std::ostringstream ss;
     ss << f.rdbuf();
     f.close();
     program = ss.str();
   }
-
 
   std::vector<Token> tokens = lexer::lex_program(program);
   ast::Root root = parser::parse_program(tokens);

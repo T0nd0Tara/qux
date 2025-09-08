@@ -1,6 +1,7 @@
 BISON=bison
 CXX=g++
-CXXFLAGS = -std=c++20 -I/home/amirs/code-libs/magic_enum/include -DYYDEBUG=1 -g -ggdb
+CXXFLAGS = -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -g -ggdb
+
 BUILD_DIR=build
 
 all: $(BUILD_DIR)/qux
@@ -18,4 +19,4 @@ $(BUILD_DIR)/qux.re.cc: src/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
 $(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc
-	$(CXX) $(CXXFLAGS) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $< 

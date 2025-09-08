@@ -3,7 +3,7 @@ CompileFlags:
    - -std=c++20
    - -Wall
    - -Wextra
-   - -I/home/amirs/code-libs/magic_enum/include
+   - -I./magic_enum/include
    - -DDEBUG
   Compiler: clang++
 

@@ -9,7 +9,7 @@
 
 %code requires
 {
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include "src/types.hpp"
 
 struct lexctx;
