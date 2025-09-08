@@ -10,7 +10,7 @@ test: $(BUILD_DIR)/qux
 	deno run --allow-read test/main.ts
 
 clean:
-	rm -f $(BUILD_DIR)/qux.cc $(BUILD_DIR)/qux.re.cc $(BUILD_DIR)/qux
+	rm -f $(BUILD_DIR)/*
 
 $(BUILD_DIR)/qux.cc: $(BUILD_DIR)/qux.re.cc
 	re2c -o $@ $<
