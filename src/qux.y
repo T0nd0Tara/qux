@@ -212,7 +212,12 @@ int main(int argc, char** argv)
 
     yy::qux_parser parser(ctx);
     parser.set_debug_level(1);
-    parser.parse();
+    int parse_ret = parser.parse();
+    if (parse_ret) {
+      std::cerr << "Parsing Error";
+      return parse_ret;
+    }
+
     std::cout << stringify_tree(ctx);
     // std::vector<function> func_list = std::move(ctx.func_list);
 
