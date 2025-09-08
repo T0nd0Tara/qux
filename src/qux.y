@@ -166,6 +166,7 @@ re2c:define:YYCURSOR = "ctx.cursor";
 %} /* End lexer */
 }
 
+#include <sstream>
 #include <fstream>
 #include "textbox.hh"
 void yy::qux_parser::error(const location_type& l, const std::string& m)
@@ -180,7 +181,17 @@ std::string stringify_tree(lexctx& ctx) {
       result.putbox(2,0, create_tree_graph(ctx.scope.expr, 200,
           [&](const expression& e)
           {
-            return std::string(magic_enum::enum_name(e.type));
+            std::stringstream ss;
+            ss << std::string(magic_enum::enum_name(e.type));
+            ss << ": ";
+            switch (e.type) {
+            case ex_type::ident: {
+              ss << e.ident.name; 
+              break;
+            }
+            }
+
+            return ss.str();
           },
           [](const expression& e) { return std::make_pair(e.params.cbegin(), e.params.cend()); },
           [](const expression& e) { return e.params.size() >= 1; }, // whether simplified horizontal layout can be used
