@@ -1,20 +1,21 @@
-BISON = bison
-CXX = g++
+BISON=bison
+CXX=g++
 CXXFLAGS = -std=c++20 -I/home/amirs/code-libs/magic_enum/include -DYYDEBUG=1 -g -ggdb
+BUILD_DIR=build
 
-all: qux
+all: $(BUILD_DIR)/qux
 
-test: qux
+test: $(BUILD_DIR)/qux
 	deno run --allow-read test/main.ts
 
 clean:
-	rm -f qux.cc qux.re.cc qux
+	rm -f $(BUILD_DIR)/qux.cc $(BUILD_DIR)/qux.re.cc $(BUILD_DIR)/qux
 
-qux.cc: qux.re.cc
+$(BUILD_DIR)/qux.cc: $(BUILD_DIR)/qux.re.cc
 	re2c -o $@ $<
 
-qux.re.cc: src/qux.y
+$(BUILD_DIR)/qux.re.cc: src/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
-qux: qux.cc
+$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc
 	$(CXX) $(CXXFLAGS) -o $@ $<
