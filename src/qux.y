@@ -214,7 +214,7 @@ int main(int argc, char** argv)
     parser.set_debug_level(1);
     int parse_ret = parser.parse();
     if (parse_ret) {
-      std::cerr << "Parsing Error";
+      std::cerr << "Parsing Error\n";
       return parse_ret;
     }
 
