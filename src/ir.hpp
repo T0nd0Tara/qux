@@ -37,7 +37,13 @@ void generate_expression(std::stringstream &ss, const expression &e) {
     break;
   }
   case ex_type::fcall: {
-    ss << e.ident.name << "(";
+    auto name = e.ident.name;
+
+    if (auto c_ident = c_identifiers.find(e.ident.name);
+        c_ident != c_identifiers.end()) {
+      name = c_ident->second;
+    }
+    ss << name << "(";
     for (size_t i = 0; i < e.children.size(); ++i) {
       generate_expression(ss, e.children[i]);
       if (i < e.children.size() - 1)

@@ -25,7 +25,11 @@ struct lexctx
 
   Scope* current_scope;
 
-  lexctx(): current_scope(&scope) {}
+  lexctx(): current_scope(&scope) {
+    for (const auto [qux_name, c_name] : c_identifiers) {
+      define(identifier{.name = qux_name});
+    }
+  }
 protected:
 
   identifier* get(const std::string& name) {

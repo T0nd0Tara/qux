@@ -1,21 +1,12 @@
 #pragma once
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <iostream>
 #include <list>
 #include <map>
-#include <stack>
 #include <string>
+#include <utility>
 #include <vector>
 
-// enum class id_type {
-//         undefined, /* undefined */
-//         // function,  /* a pointer to given function */
-//         // parameter, /* one of the function params */
-//         variable,  /* a local variable */
-// };
-//
 struct identifier {
   // id_type type  = id_type::undefined;
   // size_t     index = 0; // function#, parameter# within surrounding function,
@@ -23,6 +14,9 @@ struct identifier {
   std::string name;
 };
 typedef std::vector<identifier> ident_vec;
+
+const static std::map<std::string, std::string> c_identifiers{
+    std::make_pair("print", "printf")};
 
 enum class ex_type {
   nop,
