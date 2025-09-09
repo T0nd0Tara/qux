@@ -240,7 +240,7 @@ int main(int argc, char** argv)
     ctx.loc.end.filename   = &filename;
 
     yy::qux_parser parser(ctx);
-    parser.set_debug_level(1);
+    // parser.set_debug_level(1);
     int parse_ret = parser.parse();
     if (parse_ret) {
       std::cerr << "Parsing Error\n";
