@@ -7,8 +7,7 @@
 %define parse.error verbose
 %locations   // <--
 
-%code requires
-{
+%code requires {
 #include <magic_enum/magic_enum.hpp>
 #include "src/types.hpp"
 
@@ -38,18 +37,18 @@ public:
     return current_scope->define(f);
   }
 
-  expression use(const std::string& name) {
+  identifier& get_identifier(const std::string& name) {
     identifier* ident = get(name);
     if (ident) return *ident;
 
     throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
   }
 
-  expression call(const std::string& name, const std::vector<expression>& params) {
-    identifier* ident = get(name);
-    if (ident) return expression(ex_type::fcall, *ident);
-
-    throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
+  expression call(const std::string& name, const expr_vec& children) {
+    identifier& ident = get_identifier(name);
+    expression expr = expression(ex_type::fcall, children);
+    expr.ident = ident;
+    return expr;
   }
 
   void push_scope() { 
@@ -82,8 +81,10 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 %type<int32_t> NUMLITERAL
 %type<std::string> IDENTIFIER STRINGLITERAL
 // TODO: currently there is no difference between decleration, statement and expression, should there be?
-%type<expression>  expr declerations decleration stmnt stmnts stmnts1
-%type<std::vector<expression>>  exprs 
+%type<expression>  expr declerations decleration stmnt stmnts stmnts1 rvalue function 
+%type<std::vector<expression>>  exprs
+%type<identifier> parameter 
+%type<std::vector<identifier>>  parameters
 
 /* Generate the parser description file. */
 %verbose
@@ -92,11 +93,11 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 %%
 
 library: { ctx.push_scope(); } declerations {  ctx.pop_scope(); ctx.current_scope->expr = M($2); };
-declerations: declerations decleration { $$ = M($1); $$.params.push_back(M($2)); }
+declerations: declerations decleration { $$ = M($1); $$.children.push_back(M($2)); }
             | %empty                   { $$ = expression(ex_type::comp); };
-decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = ctx.define(identifier{ .name=$1 }); /* currently we only have one type (function) */ }
-rvalue: function;
-function: { ctx.push_scope(); } '(' parameters ')' stmnt { ctx.pop_scope(); };
+decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = expression(ex_type::assign); $$.ident = ctx.define(identifier{ .name=$1 }); $$.children.push_back($4); /* currently we only have one type (function) */ }
+rvalue: function { $$ = M($1); };
+function: { ctx.push_scope(); } '(' parameters ')' stmnt { $$ = expression(ex_type::func, $5); $$.params = $3; ctx.pop_scope(); };
 stmnt: stmnts           { $$ = M($1); }
      | decleration ';'  { $$ = M($1); }
      | expr ';'         { $$ = M($1); }
@@ -104,16 +105,15 @@ stmnt: stmnts           { $$ = M($1); }
      | FOR expr stmnt   { $$ = expression(ex_type::loop, $2, $3); }
      | RETURN expr ';'  { $$ = expression(ex_type::ret, $2); };
 stmnts: { ctx.push_scope(); } '{' stmnts1 '}' { $$ = M($3); ctx.pop_scope(); };
-stmnts1: stmnts1 stmnt { $$ = M($1); $$.params.push_back(M($2)); }
+stmnts1: stmnts1 stmnt { $$ = M($1); $$.children.push_back(M($2)); }
        | %empty { $$ = expression(); };
-parameters: parameters ',' parameter 
-          | %empty;
-parameter: IDENTIFIER 
+parameters: parameters ',' parameter { $$ = M($1); $$.push_back($3); }
+          | %empty { $$ = ident_vec(); }
+parameter: IDENTIFIER { $$ = ctx.define(identifier{ .name = M($1) }); }
 expr: NUMLITERAL { $$ = $1; }
     | STRINGLITERAL { $$ = M($1); }
-    | IDENTIFIER   %prec '(' { $$ = ctx.use($1); }
     | '(' expr ')' %prec COMP { $$ = $2; }
-    | IDENTIFIER '(' exprs ')'  { $$ = ctx.call($1, $3); }
+    | IDENTIFIER '(' exprs ')'   { $$ = ctx.call($1, $3); }
     | expr PLUS expr  %prec PLUS { $$ = expression(ex_type::plus, $1, $3); }
     | expr MINUS expr %prec PLUS { $$ = expression(ex_type::minus, $1, $3); }
     | expr DIV expr   %prec DIV  { $$ = expression(ex_type::div, $1, $3); }
@@ -185,7 +185,7 @@ std::string stringify_tree(lexctx& ctx) {
             ss << std::string(magic_enum::enum_name(e.type));
             ss << ": ";
             switch (e.type) {
-            case ex_type::ident: {
+            case ex_type::assign: {
               ss << e.ident.name; 
               break;
             }
@@ -193,8 +193,8 @@ std::string stringify_tree(lexctx& ctx) {
 
             return ss.str();
           },
-          [](const expression& e) { return std::make_pair(e.params.cbegin(), e.params.cend()); },
-          [](const expression& e) { return e.params.size() >= 1; }, // whether simplified horizontal layout can be used
+          [](const expression& e) { return std::make_pair(e.children.cbegin(), e.children.cend()); },
+          [](const expression& e) { return e.children.size() >= 1; }, // whether simplified horizontal layout can be used
           [](const expression&  ) { return true; },                 // whether extremely simplified horiz layout can be used
           [](const expression& e) { return e.type == ex_type::loop; }));
     return result.to_string();

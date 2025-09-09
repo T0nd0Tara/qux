@@ -22,12 +22,14 @@ struct identifier {
   // variable#
   std::string name;
 };
+typedef std::vector<identifier> ident_vec;
 
 enum class ex_type {
   nop,
   string,
   number,
-  ident, /* atoms */
+  // ident, /* atoms */
+  assign,
   plus,
   minus,
   mult,
@@ -43,6 +45,7 @@ enum class ex_type {
   addrof,
   deref, /* pointer handling */
   fcall, /* function param0 call with param1..n */
+  func,
   copy,  /* assign: param1 <<- param0 */
   comma, /* a sequence of expressions */
   ret,   /* return(param0) */
@@ -58,15 +61,19 @@ struct expression {
   // For for() and if(), the first item is the condition and the rest are the
   // contingent code For fcall, the first parameter is the variable to use as
   // function
-  expr_vec params;
+  expr_vec children{};
+
+  ident_vec params{};
 
   template <typename... T>
   expression(ex_type t, T &&...args)
-      : type(t), params{std::forward<T>(args)...} {}
+      : type(t), children{std::forward<T>(args)...} {}
+
+  expression(ex_type t, expr_vec &&args) : type(t), children(std::move(args)) {}
 
   expression() : type(ex_type::nop) {}
-  expression(const identifier &i) : type(ex_type::ident), ident(i) {}
-  expression(identifier &&i) : type(ex_type::ident), ident(std::move(i)) {}
+  // expression(const identifier &i) : type(ex_type::ident), ident(i) {}
+  // expression(identifier &&i) : type(ex_type::ident), ident(std::move(i)) {}
   expression(std::string &&s) : type(ex_type::string), strvalue(std::move(s)) {}
   expression(int32_t v) : type(ex_type::number), numvalue(v) {}
 
