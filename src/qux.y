@@ -225,11 +225,18 @@ std::string stringify_tree(lexctx& ctx) {
 
 #include "src/ir.hpp"
 
-int write_ir(std::string_view ir) {
-    std::string filename = "out.c";
+int read_program(std::string filename, std::string& buffer) {
+    std::ifstream f(filename);
+    if (!f.is_open()) {
+      return 1;
+    }
+    buffer = std::string(std::istreambuf_iterator<char>(f), {});
+    f.close();
+    return 0;
+}
+int write_ir(std::string filename, std::string_view ir) {
     std::ofstream f(filename, std::ios::trunc);
     if (!f.is_open()) {
-      std::cerr << "Couldn't open file '" << filename << "'. exiting...\n";
       return 1;
     }
     f << ir;
@@ -244,19 +251,19 @@ int main(int argc, char** argv)
       std::cerr << "Input file must be given\n";
       return 1;
     }
-    std::string filename = argv[1];
-    std::ifstream f(filename);
-    if (!f.is_open()) {
-      std::cerr << "Couldn't open file '" << filename << "'. exiting...\n";
-      return 1;
-    }
-    std::string buffer(std::istreambuf_iterator<char>(f), {});
-    f.close();
 
+    std::string infile = argv[1];
+    std::string buffer;
+    ret = read_program(infile, buffer);
+    if (ret) {
+      std::cerr << "Couldn't read file '" << infile << "'. exiting...\n";
+      return ret;
+    }
+    
     lexctx ctx;
     ctx.cursor = buffer.c_str();
-    ctx.loc.begin.filename = &filename;
-    ctx.loc.end.filename   = &filename;
+    ctx.loc.begin.filename = &infile;
+    ctx.loc.end.filename   = &infile;
 
     yy::qux_parser parser(ctx);
     // parser.set_debug_level(1);
@@ -270,7 +277,9 @@ int main(int argc, char** argv)
     std::cout << "\n\n";
     std::string ir = ir_gen(ctx);
     std::cout << ir;
-    ret = write_ir(ir);
+    std::string outfile = "out.c";
+    ret = write_ir(outfile, ir);
+    if (ret) std::cerr << "Couldn't write to file '" << outfile << "'. exiting...\n";
     return ret;
 }
 
