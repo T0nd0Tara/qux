@@ -19,5 +19,5 @@ $(BUILD_DIR)/qux.cc: $(BUILD_DIR)/qux.re.cc
 $(BUILD_DIR)/qux.re.cc: $(SRC_DIR)/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
-$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc $(SRC_DIR)/types.hpp $(SRC_DIR)/ir.hpp
+$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc $(SRC_DIR)/types.hpp $(SRC_DIR)/ir.hpp $(SRC_DIR)/macros.hpp
 	$(CXX) $(CXXFLAGS) -o $@ $< 

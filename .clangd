@@ -4,6 +4,7 @@ CompileFlags:
    - -Wall
    - -Wextra
    - -I./magic_enum/include
+   - -I.
    - -DDEBUG
   Compiler: clang++
 
