@@ -92,7 +92,7 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 %define parse.trace
 %%
 
-library: { ctx.push_scope(); } declerations {  ctx.pop_scope(); ctx.current_scope->expr = M($2); };
+library: { ctx.push_scope(); } declerations {  ctx.current_scope->expr = M($2); ctx.pop_scope(); };
 declerations: declerations decleration { $$ = M($1); $$.children.push_back(M($2)); }
             | %empty                   { $$ = expression(ex_type::comp); };
 decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = expression(ex_type::assign); $$.ident = ctx.define(identifier{ .name=$1 }); $$.children.push_back($4); /* currently we only have one type (function) */ }
@@ -177,8 +177,9 @@ void yy::qux_parser::error(const location_type& l, const std::string& m)
 
 
 std::string stringify_tree(lexctx& ctx) {
-    textbox result;
-      result.putbox(2,0, create_tree_graph(ctx.scope.expr, 200,
+  auto &scope = *ctx.scope.scopes.begin();
+  textbox result;
+  result.putbox(2,0, create_tree_graph(scope.expr, 200,
           [&](const expression& e)
           {
             std::stringstream ss;
@@ -199,9 +200,9 @@ std::string stringify_tree(lexctx& ctx) {
             }
             case ex_type::func: {
               ss << "("; 
-              for (int i = 0; i < e.params.size(); ++i) {
+              for (size_t i = 0; i < e.params.size(); ++i) {
                 ss << e.params[i].name;
-                if (i != e.params.size())
+                if (i < e.params.size() - 1)
                   ss << ", ";
               }
               ss << ")"; 
@@ -215,9 +216,10 @@ std::string stringify_tree(lexctx& ctx) {
           [](const expression& e) { return e.children.size() > 0 || e.params.size() > 0; }, // whether simplified horizontal layout can be used
           [](const expression&  ) { return false; },                 // whether extremely simplified horiz layout can be used
           [](const expression& e) { return e.type == ex_type::loop; }));
-    return result.to_string();
+  return result.to_string();
 }
 
+#include "src/ir.hpp"
 
 int main(int argc, char** argv)
 {
@@ -248,6 +250,8 @@ int main(int argc, char** argv)
     }
 
     std::cout << stringify_tree(ctx);
+    std::cout << "\n\n";
+    std::cout << ir_gen(ctx);
     // std::vector<function> func_list = std::move(ctx.func_list);
 
     // for(const auto& f: func_list) std::cout << stringify_tree(f);
