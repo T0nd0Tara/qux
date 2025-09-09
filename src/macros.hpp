@@ -1,7 +1,9 @@
 #pragma once
 
-#define NOT_IMPLEMENTED(msg) \
-  assert(false && "NOT_IMPLEMENTED" && (msg))
+#define NOT_IMPLEMENTED(msg)                                                   \
+  std::cerr << "NOT_IMPLEMENTED: " << (msg) << "\n";                           \
+  assert(false)
 
-#define NOT_REACHABLE(msg) \
-  assert(false && "NOT_REACHABLE" && (msg))
+#define NOT_REACHABLE(msg)                                                     \
+  std::cerr << "NOT_REACHABLE: " << (msg) << "\n";                             \
+  assert(false)
