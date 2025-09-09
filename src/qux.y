@@ -272,10 +272,6 @@ int main(int argc, char** argv)
     std::cout << ir;
     ret = write_ir(ir);
     return ret;
-
-    // std::vector<function> func_list = std::move(ctx.func_list);
-
-    // for(const auto& f: func_list) std::cout << stringify_tree(f);
 }
 
 
