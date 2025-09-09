@@ -106,7 +106,7 @@ stmnt: stmnts           { $$ = M($1); }
      | RETURN expr ';'  { $$ = expression(ex_type::ret, $2); };
 stmnts: { ctx.push_scope(); } '{' stmnts1 '}' { $$ = M($3); ctx.pop_scope(); };
 stmnts1: stmnts1 stmnt { $$ = M($1); $$.children.push_back(M($2)); }
-       | %empty { $$ = expression(); };
+       | %empty { $$ = expression(ex_type::comp); };
 parameters: parameters ',' parameter { $$ = M($1); $$.push_back($3); }
           | %empty { $$ = ident_vec(); }
 parameter: IDENTIFIER { $$ = ctx.define(identifier{ .name = M($1) }); }
@@ -185,8 +185,26 @@ std::string stringify_tree(lexctx& ctx) {
             ss << std::string(magic_enum::enum_name(e.type));
             ss << ": ";
             switch (e.type) {
+            case ex_type::string: {
+              ss << e.strvalue; 
+              break;
+            }
+            case ex_type::number: {
+              ss << e.numvalue; 
+              break;
+            }
             case ex_type::assign: {
               ss << e.ident.name; 
+              break;
+            }
+            case ex_type::func: {
+              ss << "("; 
+              for (int i = 0; i < e.params.size(); ++i) {
+                ss << e.params[i].name;
+                if (i != e.params.size())
+                  ss << ", ";
+              }
+              ss << ")"; 
               break;
             }
             }
@@ -194,8 +212,8 @@ std::string stringify_tree(lexctx& ctx) {
             return ss.str();
           },
           [](const expression& e) { return std::make_pair(e.children.cbegin(), e.children.cend()); },
-          [](const expression& e) { return e.children.size() >= 1; }, // whether simplified horizontal layout can be used
-          [](const expression&  ) { return true; },                 // whether extremely simplified horiz layout can be used
+          [](const expression& e) { return e.children.size() > 0 || e.params.size() > 0; }, // whether simplified horizontal layout can be used
+          [](const expression&  ) { return false; },                 // whether extremely simplified horiz layout can be used
           [](const expression& e) { return e.type == ex_type::loop; }));
     return result.to_string();
 }
