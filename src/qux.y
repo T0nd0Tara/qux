@@ -225,8 +225,21 @@ std::string stringify_tree(lexctx& ctx) {
 
 #include "src/ir.hpp"
 
+int write_ir(std::string_view ir) {
+    std::string filename = "out.c";
+    std::ofstream f(filename, std::ios::trunc);
+    if (!f.is_open()) {
+      std::cerr << "Couldn't open file '" << filename << "'. exiting...\n";
+      return 1;
+    }
+    f << ir;
+    f.close();
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
+    int ret;
     if (argc < 2) {
       std::cerr << "Input file must be given\n";
       return 1;
@@ -247,15 +260,19 @@ int main(int argc, char** argv)
 
     yy::qux_parser parser(ctx);
     // parser.set_debug_level(1);
-    int parse_ret = parser.parse();
-    if (parse_ret) {
+    ret = parser.parse();
+    if (ret) {
       std::cerr << "Parsing Error\n";
-      return parse_ret;
+      return ret;
     }
 
     std::cout << stringify_tree(ctx);
     std::cout << "\n\n";
-    std::cout << ir_gen(ctx);
+    std::string ir = ir_gen(ctx);
+    std::cout << ir;
+    ret = write_ir(ir);
+    return ret;
+
     // std::vector<function> func_list = std::move(ctx.func_list);
 
     // for(const auto& f: func_list) std::cout << stringify_tree(f);
