@@ -3,6 +3,7 @@ CXX=g++
 CXXFLAGS = -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -g -ggdb
 
 BUILD_DIR=build
+SRC_DIR=src
 
 all: $(BUILD_DIR)/qux
 
@@ -15,8 +16,8 @@ clean:
 $(BUILD_DIR)/qux.cc: $(BUILD_DIR)/qux.re.cc
 	re2c -o $@ $<
 
-$(BUILD_DIR)/qux.re.cc: src/qux.y
+$(BUILD_DIR)/qux.re.cc: $(SRC_DIR)/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
-$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc
+$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc $(SRC_DIR)/types.hpp $(SRC_DIR)/ir.hpp
 	$(CXX) $(CXXFLAGS) -o $@ $< 
