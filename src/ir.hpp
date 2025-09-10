@@ -28,7 +28,7 @@ void generate_expression(std::stringstream &ss, const expression &e) {
   case ex_type::assign: {
     const expression &rvalue = e.children[0];
     if (rvalue.type == ex_type::func) {
-      generate_function(ss, e.ident, rvalue);
+      generate_function(ss, *e.ident, rvalue);
       break;
     }
 
@@ -37,9 +37,9 @@ void generate_expression(std::stringstream &ss, const expression &e) {
     break;
   }
   case ex_type::fcall: {
-    auto name = e.ident.name;
+    auto name = e.ident->name;
 
-    if (auto c_ident = c_identifiers.find(e.ident.name);
+    if (auto c_ident = c_identifiers.find(e.ident->name);
         c_ident != c_identifiers.end()) {
       name = c_ident->second;
     }
@@ -70,9 +70,9 @@ void generate_expression(std::stringstream &ss, const expression &e) {
 
 void generate_function(std::stringstream &ss, const identifier &ident,
                        const expression &func) {
-  ss << "void " << ident.name << "(";
+  ss << "int " << ident.name << "(";
   for (size_t i = 0; i < func.params.size(); ++i) {
-    ss << func.params[i].name;
+    ss << func.params[i]->name;
     if (i != func.params.size())
       ss << ", ";
   }

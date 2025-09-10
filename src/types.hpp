@@ -7,13 +7,33 @@
 #include <utility>
 #include <vector>
 
-struct identifier {
-  // id_type type  = id_type::undefined;
-  // size_t     index = 0; // function#, parameter# within surrounding function,
-  // variable#
-  std::string name;
+enum class base_type {
+  void_, // if 'nil' means empty, void means nothing. for example what a
+         // compound statement returns
+  nil,
+  string,
+  int_,
+  array, // for example the type '[string, int]', has base_type of array with
+         // children string, int
+  or_,   // ex: 'string | int'
+  func,
 };
-typedef std::vector<identifier> ident_vec;
+struct typing {
+  base_type type;
+  std::vector<typing> children{};
+  bool array = false;
+};
+struct comp_typing {
+  typing value;
+  typing error{.type = base_type::nil};
+};
+struct identifier {
+  std::string name;
+
+  bool explicit_typing = false;
+  comp_typing type{};
+};
+typedef std::vector<identifier *> ident_vec;
 
 const static std::map<std::string, std::string> c_identifiers{
     std::make_pair("print", "printf")};
@@ -48,7 +68,7 @@ enum class ex_type {
 typedef std::vector<struct expression> expr_vec;
 struct expression {
   ex_type type;
-  identifier ident{};     // For ident
+  identifier *ident = nullptr;
   std::string strvalue{}; // For string
   int32_t numvalue = 0;   // For number
   //
@@ -81,24 +101,30 @@ struct Statement {};
 
 struct Scope {
   expression expr;
-  std::map<std::string, identifier> identifiers;
+  std::map<std::string, identifier *> identifiers;
   std::list<Scope> scopes;
 
   Scope *parent = nullptr;
 
   Scope(Scope *parent_scope = nullptr) : parent(parent_scope) {}
 
+  ~Scope() {
+    for (auto it = identifiers.begin(); it != identifiers.end(); ++it) {
+      delete it->second;
+    }
+  }
+
   Scope *create_child() { return &scopes.emplace_back(this); }
 
   identifier *get(std::string name) {
     if (auto search = identifiers.find(name); search != identifiers.end())
-      return &search->second;
+      return search->second;
     if (parent)
       return parent->get(name);
     return nullptr;
   }
-  identifier &define(identifier &f) {
-    auto [it, success] = identifiers.insert({f.name, f});
+  identifier *define(identifier *f) {
+    auto [it, success] = identifiers.insert({f->name, f});
     return it->second;
   }
 };

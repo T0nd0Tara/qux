@@ -27,7 +27,7 @@ struct lexctx
 
   lexctx(): current_scope(&scope) {
     for (const auto [qux_name, c_name] : c_identifiers) {
-      define(identifier{.name = qux_name});
+      define(new identifier{.name = qux_name});
     }
   }
 protected:
@@ -37,19 +37,19 @@ protected:
   }
 
 public:
-  const identifier& define(identifier&& f) {
+  identifier* define(identifier* f) {
     return current_scope->define(f);
   }
 
-  identifier& get_identifier(const std::string& name) {
+  identifier* get_identifier(const std::string& name) {
     identifier* ident = get(name);
-    if (ident) return *ident;
+    if (ident) return ident;
 
     throw yy::qux_parser::syntax_error(loc, "Undefined identifier <"+name+">");
   }
 
   expression call(const std::string& name, const expr_vec& children) {
-    identifier& ident = get_identifier(name);
+    identifier* ident = get_identifier(name);
     expression expr = expression(ex_type::fcall, children);
     expr.ident = ident;
     return expr;
@@ -87,8 +87,8 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 // TODO: currently there is no difference between decleration, statement and expression, should there be?
 %type<expression>  expr declerations decleration stmnt stmnts stmnts1 rvalue function 
 %type<std::vector<expression>>  exprs
-%type<identifier> parameter 
-%type<std::vector<identifier>>  parameters
+%type<identifier*> parameter 
+%type<std::vector<identifier*>>  parameters
 
 /* Generate the parser description file. */
 %verbose
@@ -99,7 +99,7 @@ namespace yy { qux_parser::symbol_type yylex(lexctx& ctx); }
 library: { ctx.push_scope(); } declerations {  ctx.current_scope->expr = M($2); ctx.pop_scope(); };
 declerations: declerations decleration { $$ = M($1); $$.children.push_back(M($2)); }
             | %empty                   { $$ = expression(ex_type::comp); };
-decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = expression(ex_type::assign); $$.ident = ctx.define(identifier{ .name=$1 }); $$.children.push_back($4); /* currently we only have one type (function) */ }
+decleration: IDENTIFIER ':' ':' rvalue ';' { $$ = expression(ex_type::assign); $$.ident = ctx.define(new identifier{ .name=$1 }); $$.children.push_back($4); /* currently we only have one type (function) */ }
 rvalue: function { $$ = M($1); };
 function: { ctx.push_scope(); } '(' parameters ')' stmnt { $$ = expression(ex_type::func, $5); $$.params = $3; ctx.pop_scope(); };
 stmnt: stmnts           { $$ = M($1); }
@@ -113,7 +113,7 @@ stmnts1: stmnts1 stmnt { $$ = M($1); $$.children.push_back(M($2)); }
        | %empty { $$ = expression(ex_type::comp); };
 parameters: parameters ',' parameter { $$ = M($1); $$.push_back($3); }
           | %empty { $$ = ident_vec(); }
-parameter: IDENTIFIER { $$ = ctx.define(identifier{ .name = M($1) }); }
+parameter: IDENTIFIER { $$ = ctx.define(new identifier{ .name = M($1) }); }
 expr: NUMLITERAL { $$ = $1; }
     | STRINGLITERAL { $$ = M($1); }
     | '(' expr ')' %prec COMP { $$ = $2; }
@@ -199,13 +199,13 @@ std::string stringify_tree(lexctx& ctx) {
               break;
             }
             case ex_type::assign: {
-              ss << e.ident.name; 
+              ss << e.ident->name; 
               break;
             }
             case ex_type::func: {
               ss << "("; 
               for (size_t i = 0; i < e.params.size(); ++i) {
-                ss << e.params[i].name;
+                ss << e.params[i]->name;
                 if (i < e.params.size() - 1)
                   ss << ", ";
               }
@@ -224,6 +224,7 @@ std::string stringify_tree(lexctx& ctx) {
 }
 
 #include "src/ir.hpp"
+#include "src/fill_typing.hpp"
 
 int read_program(std::string filename, std::string& buffer) {
     std::ifstream f(filename);
@@ -272,6 +273,7 @@ int main(int argc, char** argv)
       std::cerr << "Parsing Error\n";
       return ret;
     }
+    fill_typing(ctx);
 
     std::cout << stringify_tree(ctx);
     std::cout << "\n\n";
