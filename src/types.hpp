@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <memory>
 
 enum class base_type {
   void_, // if 'nil' means empty, void means nothing. for example what a
@@ -17,11 +18,19 @@ enum class base_type {
          // children string, int
   or_,   // ex: 'string | int'
   func,
+  // func_input, // we don't need a func_output as the output is one type, not
+  //             // array of different types
+  //             // basically this type is just a container to put the types array
+  //             // in the children
 };
+struct comp_typing;
+
 struct typing {
   base_type type;
   std::vector<typing> children{};
   bool array = false;
+
+  std::shared_ptr<comp_typing> func_output;
 };
 struct comp_typing {
   typing value;

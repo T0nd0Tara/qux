@@ -1,6 +1,8 @@
 #pragma once
+#include "macros.hpp"
 #include "types.hpp"
 #include <cassert>
+#include <functional>
 #include <vector>
 
 expression *find_first_assignment(identifier *ident, expression &expr) {
@@ -13,9 +15,69 @@ expression *find_first_assignment(identifier *ident, expression &expr) {
   }
   return nullptr;
 }
+std::vector<expression *>
+find_all_expressions_of_type_recursively(expression &expr, ex_type type) {
+  std::vector<expression *> out;
+
+  std::function<void(expression &)> rec;
+  rec = [&](expression &e) {
+    if (e.type == type)
+      out.push_back(&e);
+    for (expression &child : e.children)
+      rec(child);
+  };
+
+  rec(expr);
+  return out;
+}
+comp_typing get_typing_from_rvalue(expression &e) {
+  return {};
+}
+std::vector<typing> get_input_type_of_func(expression &expr) {
+  return {};
+}
+comp_typing get_output_type_of_func(expression &expr) {
+  expression &func_body = expr.children.front();
+  if (func_body.type == ex_type::comp) {
+    std::vector<expression *> returns =
+        find_all_expressions_of_type_recursively(expr, ex_type::ret);
+    if (returns.size() == 1)
+      return get_typing_from_rvalue(*returns.front());
+
+    comp_typing out = {.value = {.type = base_type::or_},
+                       .error = {.type = base_type::or_}};
+    for (expression *ret_rvalue : returns) {
+      comp_typing ret_type = get_typing_from_rvalue(*ret_rvalue);
+      out.value.children.push_back(ret_type.value);
+      out.error.children.push_back(ret_type.error);
+    }
+return out;
+  }
+
+  NOT_IMPLEMENTED("get_output_type_of_func: func_body.type != ex_type::comp");
+}
+comp_typing get_type_of_func(expression &expr) {
+  comp_typing out{.value = {.type = base_type::func},
+                  .error = {.type = base_type::void_}};
+  out.value.children = get_input_type_of_func(expr);
+  auto out_type = get_output_type_of_func(expr);
+  out.value.func_output = std::make_shared<comp_typing>(std::move(out_type));
+  return out;
+}
 comp_typing get_typing_from_assignment(expression &expr) {
   assert(expr.type == ex_type::assign);
-  return {
+
+  auto &rvalue = expr.children[0];
+  switch (rvalue.type) {
+  case ex_type::func: {
+    return get_type_of_func(rvalue);
+  }
+  default:
+    NOT_IMPLEMENTED("type: '" +
+                    std::string(magic_enum::enum_name(rvalue.type)) +
+                    "', cannot be assigned");
+  }
+  return comp_typing{
       .value = {.type = base_type::void_},
   };
 }
