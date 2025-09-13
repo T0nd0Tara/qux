@@ -172,6 +172,8 @@ re2c:define:YYCURSOR = "ctx.cursor";
 
 #include <sstream>
 #include <fstream>
+#include <boost/program_options.hpp>
+
 void yy::qux_parser::error(const location_type& l, const std::string& m)
 {
     std::cerr << (l.begin.filename ? l.begin.filename->c_str() : "(undefined)");
@@ -203,26 +205,57 @@ int write_ir(std::string filename, std::string_view ir) {
     return 0;
 }
 
-int main(int argc, char** argv)
-{
-    int ret;
-    if (argc < 2) {
-      std::cerr << "Input file must be given\n";
-      return 1;
-    }
+int cli_handle(int argc, char** argv) {
+  namespace po = boost::program_options;
+  po::options_description desc("Options");
+  desc.add_options()
+    ("help,h", "produce help message")
+    ("output,o", po::value<std::string>(), "output file")
+    ("filename", po::value<std::string>(), "input file")
+    ("print-ast", po::bool_switch(), "prints the AST to the console")
+    ("print-types", po::bool_switch(), "prints the varibales types to the console")
+    ("print-ir", po::bool_switch(), "prints the intermediate representation to the console")
+  ;
+  po::positional_options_description pos;
+  pos.add("filename", 1);  // first positional arg is filename
 
-    std::string infile = argv[1];
+  po::variables_map vm;
+  po::store(po::command_line_parser(argc, argv)
+    .options(desc)
+    .positional(pos)
+    .run()
+    , vm);
+  po::notify(vm);    
+
+  if (vm.count("help")) {
+      std::cout << "Usage: " << argv[0] << " [options] filename\n";
+      std::cout << desc << "\n";
+      return 0;
+  }
+  if (vm.count("filename") == 0) {
+      std::cerr << "Pleas provide an input file\n";
+      return 1;
+  }
+
+  std::string input_file = vm["filename"].as<std::string>();
+  std::string input_file_without_extention = input_file.substr(0, input_file.find_last_of("."));
+  std::string output_file = input_file_without_extention + ".c";
+
+  if (vm.count("output")) {
+    output_file = vm["output"].as<std::string>();
+  }
+    int ret;
     std::string buffer;
-    ret = read_program(infile, buffer);
+    ret = read_program(input_file, buffer);
     if (ret) {
-      std::cerr << "Couldn't read file '" << infile << "'. exiting...\n";
+      std::cerr << "Couldn't read file '" << input_file << "'. exiting...\n";
       return ret;
     }
     
     lexctx ctx;
     ctx.cursor = buffer.c_str();
-    ctx.loc.begin.filename = &infile;
-    ctx.loc.end.filename   = &infile;
+    ctx.loc.begin.filename = &input_file;
+    ctx.loc.end.filename   = &input_file;
 
     yy::qux_parser parser(ctx);
     // parser.set_debug_level(1);
@@ -233,16 +266,38 @@ int main(int argc, char** argv)
     }
     fill_typing(ctx);
 
-    std::cout << stringify_expr_tree(ctx);
-    std::cout << "\n\n";
-    std::cout << stringify_types(ctx);
-    std::cout << "\n\n";
+    if (vm["print-ast"].as<bool>()) {
+      std::cout << stringify_expr_tree(ctx);
+      std::cout << "\n\n";
+    }
+    if (vm["print-types"].as<bool>()) {
+      std::cout << stringify_types(ctx);
+      std::cout << "\n\n";
+    }
     std::string ir = ir_gen(ctx);
-    std::cout << ir;
-    std::string outfile = "out.c";
-    ret = write_ir(outfile, ir);
-    if (ret) std::cerr << "Couldn't write to file '" << outfile << "'. exiting...\n";
+    if (vm["print-ir"].as<bool>()) {
+      std::cout << ir;
+      std::cout << "\n\n";
+    }
+    ret = write_ir(output_file, ir);
+    if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
     return ret;
+
+}
+int main(int argc, char** argv)
+{
+    try {
+      return cli_handle(argc, argv);
+    }
+    catch(std::exception& e) {
+        std::cerr << "error: " << e.what() << "\n";
+    }
+    catch(...) {
+        std::cerr << "Exception of unknown type!\n";
+    }
+
+  return 1;
+
 }
 
 
