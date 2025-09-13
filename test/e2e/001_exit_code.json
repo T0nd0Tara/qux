@@ -1,0 +1,7 @@
+{
+  "result": {
+    "compiles": true,
+    "stdout": "Hello World! 420!!!",
+    "exitCode": 69
+  }
+}

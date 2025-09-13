@@ -1,0 +1,4 @@
+main :: () {
+  print("Hello World! 420!!!");
+  return 69;
+};
