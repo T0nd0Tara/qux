@@ -31,7 +31,24 @@ find_all_expressions_of_type_recursively(expression &expr, ex_type type) {
   return out;
 }
 comp_typing get_typing_from_rvalue(expression &e) {
-  return {};
+  switch (e.type) {
+  case ex_type::string: {
+    return {
+        .value = {
+          .type = base_type::string,
+        }
+      };
+  }
+  case ex_type::number: {
+    return {
+        .value = {
+          .type = base_type::int_,
+        }
+      };
+  }
+    default:
+      NOT_IMPLEMENTED("get_typing_from_rvalue for expression type: " + std::string(magic_enum::enum_name(e.type)));
+  }
 }
 std::vector<typing> get_input_type_of_func(expression &expr) {
   return {};
@@ -41,17 +58,21 @@ comp_typing get_output_type_of_func(expression &expr) {
   if (func_body.type == ex_type::comp) {
     std::vector<expression *> returns =
         find_all_expressions_of_type_recursively(expr, ex_type::ret);
-    if (returns.size() == 1)
-      return get_typing_from_rvalue(*returns.front());
+    if (returns.size() == 1) {
+      expression& ret_rvalue = returns.front()->children.front();
+      return get_typing_from_rvalue(ret_rvalue);
+    }
+      
 
     comp_typing out = {.value = {.type = base_type::or_},
                        .error = {.type = base_type::or_}};
-    for (expression *ret_rvalue : returns) {
-      comp_typing ret_type = get_typing_from_rvalue(*ret_rvalue);
+    for (expression *ret_expr : returns) {
+      expression& ret_rvalue = ret_expr->children.front();
+      comp_typing ret_type = get_typing_from_rvalue(ret_rvalue);
       out.value.children.push_back(ret_type.value);
       out.error.children.push_back(ret_type.error);
     }
-return out;
+    return out;
   }
 
   NOT_IMPLEMENTED("get_output_type_of_func: func_body.type != ex_type::comp");

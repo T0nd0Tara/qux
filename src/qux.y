@@ -172,7 +172,6 @@ re2c:define:YYCURSOR = "ctx.cursor";
 
 #include <sstream>
 #include <fstream>
-#include "textbox.hh"
 void yy::qux_parser::error(const location_type& l, const std::string& m)
 {
     std::cerr << (l.begin.filename ? l.begin.filename->c_str() : "(undefined)");
@@ -180,51 +179,10 @@ void yy::qux_parser::error(const location_type& l, const std::string& m)
 }
 
 
-std::string stringify_tree(lexctx& ctx) {
-  auto &scope = *ctx.scope.scopes.begin();
-  textbox result;
-  result.putbox(2,0, create_tree_graph(scope.expr, 200,
-          [&](const expression& e)
-          {
-            std::stringstream ss;
-            ss << std::string(magic_enum::enum_name(e.type));
-            ss << ": ";
-            switch (e.type) {
-            case ex_type::string: {
-              ss << e.strvalue; 
-              break;
-            }
-            case ex_type::number: {
-              ss << e.numvalue; 
-              break;
-            }
-            case ex_type::assign: {
-              ss << e.ident->name; 
-              break;
-            }
-            case ex_type::func: {
-              ss << "("; 
-              for (size_t i = 0; i < e.params.size(); ++i) {
-                ss << e.params[i]->name;
-                if (i < e.params.size() - 1)
-                  ss << ", ";
-              }
-              ss << ")"; 
-              break;
-            }
-            }
-
-            return ss.str();
-          },
-          [](const expression& e) { return std::make_pair(e.children.cbegin(), e.children.cend()); },
-          [](const expression& e) { return e.children.size() > 0 || e.params.size() > 0; }, // whether simplified horizontal layout can be used
-          [](const expression&  ) { return false; },                 // whether extremely simplified horiz layout can be used
-          [](const expression& e) { return e.type == ex_type::loop; }));
-  return result.to_string();
-}
 
 #include "src/ir.hpp"
 #include "src/fill_typing.hpp"
+#include "src/debugging.hpp"
 
 int read_program(std::string filename, std::string& buffer) {
     std::ifstream f(filename);
@@ -275,7 +233,9 @@ int main(int argc, char** argv)
     }
     fill_typing(ctx);
 
-    std::cout << stringify_tree(ctx);
+    std::cout << stringify_expr_tree(ctx);
+    std::cout << "\n\n";
+    std::cout << stringify_types(ctx);
     std::cout << "\n\n";
     std::string ir = ir_gen(ctx);
     std::cout << ir;
