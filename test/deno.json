@@ -1,10 +1,11 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "test": "deno run --allow-read --allow-run main.ts"
   },
   "vendor": true,
   "imports": {
     "@std/fs": "jsr:@std/fs@^1.0.17",
+    "@std/path": "jsr:@std/path@^1.1.2",
     "p-limit": "npm:p-limit@^6.2.0"
   }
 }
