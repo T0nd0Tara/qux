@@ -36,7 +36,7 @@ comp_typing get_typing_from_rvalue(expression &e) {
     return {
         .value = {
           .type = base_type::string,
-        }
+        },
       };
   }
   case ex_type::number: {

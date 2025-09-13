@@ -34,7 +34,7 @@ struct typing {
 };
 struct comp_typing {
   typing value;
-  typing error{.type = base_type::nil};
+  typing error{.type = base_type::void_};
 };
 struct identifier {
   std::string name;

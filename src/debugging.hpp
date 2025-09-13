@@ -3,11 +3,34 @@
 #include "types.hpp"
 #include <string>
 #include <sstream>
-std::string stringify_type(comp_typing& type) {
+std::string stringify_comp_type(comp_typing& type);
+
+std::string stringify_type(typing& type) {
   std::stringstream ss;
-  ss << magic_enum::enum_name(type.value.type);
+  ss << magic_enum::enum_name(type.type);
+  switch (type.type) {
+    case base_type::func: {
+      ss << ": (";
+      for (size_t i = 0; i < type.children.size(); i++) {
+        ss << stringify_type(type.children[i]);
+
+        if (i + 1 < type.children.size()) {
+          ss << ", ";
+        }
+      }
+      ss << ")";
+      ss << " -> (" << stringify_comp_type(*type.func_output) << ")";
+      break;
+    }
+      
+  }
+  return ss.str();
+}
+std::string stringify_comp_type(comp_typing& type) {
+  std::stringstream ss;
+  ss << stringify_type(type.value);
   ss << " !> ";
-  ss << magic_enum::enum_name(type.error.type);
+  ss << stringify_type(type.error);
   return ss.str();
 }
 
@@ -19,7 +42,7 @@ std::string stringify_types(lexctx &ctx) {
   stringify_scope_types = [&](Scope& scope, int depth=0) {
 
     for(auto [ident_name, ident] : scope.identifiers) {
-      ss << std::string(depth * 2, ' ') << ident->name << ": " << stringify_type(ident->type) << '\n';
+      ss << std::string(depth * 2, ' ') << ident->name << ": " << stringify_comp_type(ident->type) << '\n';
     }
     for (auto& s : scope.scopes) {
       stringify_scope_types(s, depth+1);
