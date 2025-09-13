@@ -1,7 +1,7 @@
 BISON=bison
-CXX=g++
-CXXFLAGS = -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -g -ggdb
-
+CXX=clang++
+CXXFLAGS= -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -g -ggdb
+BOOSTFLAGS=-lboost_program_options
 BUILD_DIR=build
 SRC_DIR=src
 
@@ -20,4 +20,4 @@ $(BUILD_DIR)/qux.re.cc: $(SRC_DIR)/qux.y
 	$(BISON) $(BISONFLAGS) -o $@ $<
 
 $(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc $(SRC_DIR)/fill_typing.hpp $(SRC_DIR)/types.hpp $(SRC_DIR)/ir.hpp $(SRC_DIR)/macros.hpp $(SRC_DIR)/debugging.hpp
-	$(CXX) $(CXXFLAGS) -o $@ $< 
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -o $@ $< 
