@@ -244,57 +244,56 @@ int cli_handle(int argc, char** argv) {
   if (vm.count("output")) {
     output_file = vm["output"].as<std::string>();
   }
-    int ret;
-    std::string buffer;
-    ret = read_program(input_file, buffer);
-    if (ret) {
-      std::cerr << "Couldn't read file '" << input_file << "'. exiting...\n";
-      return ret;
-    }
-    
-    lexctx ctx;
-    ctx.cursor = buffer.c_str();
-    ctx.loc.begin.filename = &input_file;
-    ctx.loc.end.filename   = &input_file;
-
-    yy::qux_parser parser(ctx);
-    // parser.set_debug_level(1);
-    ret = parser.parse();
-    if (ret) {
-      std::cerr << "Parsing Error\n";
-      return ret;
-    }
-    fill_typing(ctx);
-
-    if (vm["print-ast"].as<bool>()) {
-      std::cout << stringify_expr_tree(ctx);
-      std::cout << "\n\n";
-    }
-    if (vm["print-types"].as<bool>()) {
-      std::cout << stringify_types(ctx);
-      std::cout << "\n\n";
-    }
-    std::string ir = ir_gen(ctx);
-    if (vm["print-ir"].as<bool>()) {
-      std::cout << ir;
-      std::cout << "\n\n";
-    }
-    ret = write_ir(output_file, ir);
-    if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
+  int ret;
+  std::string buffer;
+  ret = read_program(input_file, buffer);
+  if (ret) {
+    std::cerr << "Couldn't read file '" << input_file << "'. exiting...\n";
     return ret;
+  }
+  
+  lexctx ctx;
+  ctx.cursor = buffer.c_str();
+  ctx.loc.begin.filename = &input_file;
+  ctx.loc.end.filename   = &input_file;
 
+  yy::qux_parser parser(ctx);
+  // parser.set_debug_level(1);
+  ret = parser.parse();
+  if (ret) {
+    std::cerr << "Parsing Error\n";
+    return ret;
+  }
+  fill_typing(ctx);
+
+  if (vm["print-ast"].as<bool>()) {
+    std::cout << stringify_expr_tree(ctx);
+    std::cout << "\n\n";
+  }
+  if (vm["print-types"].as<bool>()) {
+    std::cout << stringify_types(ctx);
+    std::cout << "\n\n";
+  }
+  std::string ir = ir_gen(ctx);
+  if (vm["print-ir"].as<bool>()) {
+    std::cout << ir;
+    std::cout << "\n\n";
+  }
+  ret = write_ir(output_file, ir);
+  if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
+  return ret;
 }
 int main(int argc, char** argv)
 {
-    try {
-      return cli_handle(argc, argv);
-    }
-    catch(std::exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
-    }
-    catch(...) {
-        std::cerr << "Exception of unknown type!\n";
-    }
+  try {
+    return cli_handle(argc, argv);
+  }
+  catch(std::exception& e) {
+    std::cerr << "error: " << e.what() << "\n";
+  }
+  catch(...) {
+    std::cerr << "Exception of unknown type!\n";
+  }
 
   return 1;
 
