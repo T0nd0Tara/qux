@@ -1,6 +1,7 @@
 {
   "tasks": {
-    "test": "deno run --allow-read --allow-run main.ts"
+    "test": "deno run --allow-read --allow-run main.ts",
+    "clean": "rm -r e2e/*.c e2e/*.a"
   },
   "vendor": true,
   "imports": {
