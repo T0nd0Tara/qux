@@ -215,6 +215,7 @@ int cli_handle(int argc, char** argv) {
     ("print-ast", po::bool_switch(), "prints the AST to the console")
     ("print-types", po::bool_switch(), "prints the varibales types to the console")
     ("print-ir", po::bool_switch(), "prints the intermediate representation to the console")
+    ("no-write", po::bool_switch(), "do not write the IR to a file")
   ;
   po::positional_options_description pos;
   pos.add("filename", 1);  // first positional arg is filename
@@ -279,8 +280,11 @@ int cli_handle(int argc, char** argv) {
     std::cout << ir;
     std::cout << "\n\n";
   }
-  ret = write_ir(output_file, ir);
-  if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
+  if (!vm["no-write"].as<bool>()) {
+    ret = write_ir(output_file, ir);
+    if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
+    return ret;
+  }
   return ret;
 }
 int main(int argc, char** argv)
