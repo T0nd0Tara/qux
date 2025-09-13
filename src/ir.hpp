@@ -7,6 +7,17 @@
 #include <sstream>
 #include <string>
 
+std::string generate_ir_type(comp_typing &type) {
+  if (type.error.type != base_type::void_)
+    NOT_IMPLEMENTED("generate_ir_type for error type != void. error type: " +
+                    std::string(magic_enum::enum_name(type.error.type)));
+  switch (type.value.type) {
+  case base_type::int_:
+    return "int";
+  }
+  NOT_IMPLEMENTED("generate_ir_type for value type: " +
+                  std::string(magic_enum::enum_name(type.value.type)));
+}
 void generate_function(std::stringstream &ss, const identifier &ident,
                        const expression &func);
 void generate_expression(std::stringstream &ss, const expression &e) {
@@ -70,7 +81,9 @@ void generate_expression(std::stringstream &ss, const expression &e) {
 
 void generate_function(std::stringstream &ss, const identifier &ident,
                        const expression &func) {
-  ss << "int " << ident.name << "(";
+
+  ss << generate_ir_type(*ident.type.value.func_output) << " " << ident.name
+     << "(";
   for (size_t i = 0; i < func.params.size(); ++i) {
     ss << func.params[i]->name;
     if (i != func.params.size())
