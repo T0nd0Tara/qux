@@ -22,6 +22,7 @@ interface SuitMetdata {
   result: SuitExpectedResult;
 }
 interface SuitResult {
+  name: string,
   mismatches: {
     type: keyof SuitExpectedResult;
     actual: SuitExpectedResult[keyof SuitExpectedResult];
@@ -46,7 +47,7 @@ function getMismatches(
       mismatches.push({
         type: key,
         actual: actual[key],
-        expected: actual[key],
+        expected: expected[key],
       });
     }
   });
@@ -99,6 +100,7 @@ async function testSuite(suitsFolder: string, suitName: string): SuitResult {
   const actual = await runSuite(suitPath);
 
   const result: SuitResult = {
+    name: suitName,
     mismatches: getMismatches(metadata.result, actual),
   };
   const prefix = result.mismatches.length > 0 ? "[ERROR ]" : "[PASSED]";
@@ -121,5 +123,15 @@ async function testSuite(suitsFolder: string, suitName: string): SuitResult {
     .filter((dirEntry: DirEntry) => dirEntry.name.endsWith(extension))
     .map((dirEntry: DirEntry) => dirEntry.name.slice(0, -extension.length))
     .map((suitName) => testsLimit(() => testSuite(suitsFolder, suitName)));
-  await Promise.all(suits);
+  const suitsResults = await Promise.all(suits);
+  const erroredResults = suitsResults.filter(result => result.mismatches.length > 0);
+  erroredResults
+    .forEach(result => {
+      console.log(result.name)
+      result.mismatches.forEach(mismatch => {
+        console.log(`  ${mismatch.type}`);
+        console.log(`    actual:   ${mismatch.actual}`);
+        console.log(`    expected: ${mismatch.expected}`);
+      });
+  })
 })();
