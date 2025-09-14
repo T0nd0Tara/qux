@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@std/fs@^1.0.17": "1.0.19",
     "jsr:@std/internal@^1.0.10": "1.0.10",
@@ -7,6 +7,8 @@
     "jsr:@std/path@^1.0.9": "1.0.9",
     "jsr:@std/path@^1.1.1": "1.1.2",
     "jsr:@std/path@^1.1.2": "1.1.2",
+    "npm:@types/node@*": "24.2.0",
+    "npm:commander@^14.0.1": "14.0.1",
     "npm:p-limit@^6.2.0": "6.2.0"
   },
   "jsr": {
@@ -37,11 +39,23 @@
     }
   },
   "npm": {
+    "@types/node@24.2.0": {
+      "integrity": "sha512-3xyG3pMCq3oYCNg7/ZP+E1ooTaGB4cG8JWRsqqOYQdbWNY4zbaV0Ennrd7stjiJEFZCaybcIgpTjJWHRfBSIDw==",
+      "dependencies": [
+        "undici-types"
+      ]
+    },
+    "commander@14.0.1": {
+      "integrity": "sha512-2JkV3gUZUVrbNA+1sjBOYLsMZ5cEEl8GTFP2a4AVz5hvasAMCQ1D2l2le/cX+pV4N6ZU17zjUahLpIXRrnWL8A=="
+    },
     "p-limit@6.2.0": {
       "integrity": "sha512-kuUqqHNUqoIWp/c467RI4X6mmyuojY5jGutNU0wVTmEOOfcuwLqyMVoAi9MKi2Ak+5i9+nhmrK4ufZE8069kHA==",
       "dependencies": [
         "yocto-queue"
       ]
+    },
+    "undici-types@7.10.0": {
+      "integrity": "sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag=="
     },
     "yocto-queue@1.2.1": {
       "integrity": "sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg=="
@@ -51,6 +65,7 @@
     "dependencies": [
       "jsr:@std/fs@^1.0.17",
       "jsr:@std/path@^1.1.2",
+      "npm:commander@^14.0.1",
       "npm:p-limit@^6.2.0"
     ]
   }

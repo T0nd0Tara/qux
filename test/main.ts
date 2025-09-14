@@ -3,6 +3,7 @@ import { readDir } from "@std/fs/unstable-read-dir";
 import { DirEntry } from "@std/fs/unstable-types";
 import * as path from "@std/path";
 import assert from "node:assert";
+import { program } from "commander";
 const testsLimit = pLimit(4);
 
 const extension = ".qux";
@@ -14,22 +15,30 @@ interface CmdOutput {
   exitCode: number;
 }
 type SuitExpectedResult = CmdOutput & {
-compiles: boolean; // Whether we even can compile it to C
+  compiles: boolean; // Whether we even can compile it to C
 };
 
+interface SuitPreperation {
+  quxCompArgs?: string[];
+  compileIr?: boolean;
+}
 
 interface SuitMetdata {
+  prep?: SuitPreperation;
   result: SuitExpectedResult;
 }
 interface SuitResult {
-  name: string,
+  name: string;
   mismatches: {
     type: keyof SuitExpectedResult;
     actual: SuitExpectedResult[keyof SuitExpectedResult];
     expected: SuitExpectedResult[keyof SuitExpectedResult];
   }[];
 }
-function parseCmdOutput(cmdOutput: Deno.CommandOptions): CmdOutput {
+interface TestOpts {
+  record?: true;
+}
+function parseCmdOutput(cmdOutput: Deno.CommandOutput): CmdOutput {
   return {
     exitCode: cmdOutput.code,
     stdout: td.decode(cmdOutput.stdout),
@@ -56,21 +65,33 @@ function getMismatches(
 async function getSuitMetadata(
   suitName: string,
 ): Promise<SuitMetdata> {
-  const expected: SuitMetdata = JSON.parse(
+  const metadata: SuitMetdata = JSON.parse(
     await Deno.readTextFile(suitName + ".json"),
   );
-  expected.result.stderr ??= "";
-  return expected;
+  metadata.result.stderr ??= "";
+  // @ts-expect-error: metadata.result.compiles can be undefined in file, not in code
+  metadata.result.compiles ??= metadata.prep?.compileIr;
+
+  return metadata;
 }
 
-async function runSuite(suitPath: string): Promise<SuitExpectedResult> {
+async function runSuite(
+  prep: SuitPreperation | undefined,
+  suitPath: string,
+): Promise<SuitExpectedResult> {
   const irBuild = await new Deno.Command(
     "./build/qux",
-    { cwd: "..", args: [`${import.meta.dirname}/${suitPath}.qux`] },
+    {
+      cwd: "..",
+      args: [
+        `${import.meta.dirname}/${suitPath}.qux`,
+        ...(prep?.quxCompArgs ?? []),
+      ],
+    },
   )
     .output();
 
-  if (irBuild.code !== 0) {
+  if (irBuild.code !== 0 || prep?.compileIr === false) {
     const cmdOutput = parseCmdOutput(irBuild);
     return {
       compiles: false,
@@ -80,9 +101,9 @@ async function runSuite(suitPath: string): Promise<SuitExpectedResult> {
 
   const build = await new Deno.Command(
     "clang",
-    {args: ["-o", `${suitPath}.a`, `${suitPath}.c`] },
-  ) 
-  .output();
+    { args: ["-o", `${suitPath}.a`, `${suitPath}.c`] },
+  )
+    .output();
   assert(build.code === 0, "Can compile to IR, but not furthar");
 
   const run = await new Deno.Command(`${suitPath}.a`)
@@ -92,22 +113,32 @@ async function runSuite(suitPath: string): Promise<SuitExpectedResult> {
     ...parseCmdOutput(run),
   };
 }
-async function testSuite(suitsFolder: string, suitName: string): SuitResult {
+async function testSuite(
+  suitsFolder: string,
+  suitName: string,
+  testOpts: TestOpts,
+): Promise<SuitResult> {
   const suitPath = path.format({ dir: suitsFolder, name: suitName });
 
   const metadata = await getSuitMetadata(suitPath);
 
-  const actual = await runSuite(suitPath);
+  const actual: SuitExpectedResult = await runSuite(metadata.prep, suitPath);
 
   const result: SuitResult = {
     name: suitName,
     mismatches: getMismatches(metadata.result, actual),
   };
-  const prefix = result.mismatches.length > 0 ? "[ERROR ]" : "[PASSED]";
+  const passed =  result.mismatches.length === 0;
+  const prefix =  passed ? "[PASSED]" : "[ERROR ]";
   console.log(`${prefix}: ran ${suitName}`);
+  if (!passed && testOpts.record) {
+    metadata.result = actual;""""
+    await Deno.writeTextFile(suitPath + ".json", JSON.stringify(metadata, null, 2));
+  }
   return result;
 }
-(async () => {
+
+async function buildQux() {
   console.log("Building qux...");
   const build_output = await new Deno.Command("make", { cwd: ".." }).output();
   if (!build_output.success) {
@@ -116,22 +147,37 @@ async function testSuite(suitsFolder: string, suitName: string): SuitResult {
   }
 
   console.log(td.decode(build_output.stdout));
+}
+
+(async () => {
+  program
+    .option("--record");
+  program.parse();
+  const opts = program.opts();
+
+  await buildQux();
 
   const suitsFolder = "e2e";
   const testFiles = await Array.fromAsync(readDir(suitsFolder));
   const suits: Promise<SuitResult>[] = testFiles
     .filter((dirEntry: DirEntry) => dirEntry.name.endsWith(extension))
     .map((dirEntry: DirEntry) => dirEntry.name.slice(0, -extension.length))
-    .map((suitName) => testsLimit(() => testSuite(suitsFolder, suitName)));
+    .map((suitName) =>
+      testsLimit(() =>
+        testSuite(suitsFolder, suitName, { record: opts.record })
+      )
+    );
   const suitsResults = await Promise.all(suits);
-  const erroredResults = suitsResults.filter(result => result.mismatches.length > 0);
+  const erroredResults = suitsResults.filter((result) =>
+    result.mismatches.length > 0
+  );
   erroredResults
-    .forEach(result => {
-      console.log(result.name)
-      result.mismatches.forEach(mismatch => {
+    .forEach((result) => {
+      console.log(result.name);
+      result.mismatches.forEach((mismatch) => {
         console.log(`  ${mismatch.type}`);
         console.log(`    actual:   ${mismatch.actual}`);
         console.log(`    expected: ${mismatch.expected}`);
       });
-  })
+    });
 })();

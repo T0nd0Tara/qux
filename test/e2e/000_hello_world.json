@@ -1,7 +1,8 @@
 {
   "result": {
     "compiles": true,
+    "exitCode": 0,
     "stdout": "Hello World",
-    "exitCode": 0
+    "stderr": ""
   }
 }
