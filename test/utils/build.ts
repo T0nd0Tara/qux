@@ -1,4 +1,4 @@
-import type { CmdOutput } from "./types.ts";
+import type { CmdOutput } from "../types.ts";
 import randomstring from 'randomstring';
 import assert from "node:assert";
 

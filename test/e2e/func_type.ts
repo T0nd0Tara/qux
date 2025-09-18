@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { buildQuxProgram } from "../utils.ts";
+import { buildQuxProgram } from "../utils/build.ts";
 import type { CmdOutput } from "../types.ts";
 const quxProgram = `
 main :: () {
