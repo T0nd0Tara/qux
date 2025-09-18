@@ -186,8 +186,31 @@ void yy::qux_parser::error(const location_type& l, const std::string& m)
 #include "src/fill_typing.hpp"
 #include "src/debugging.hpp"
 
-int read_program(std::string filename, std::string& buffer) {
-    std::ifstream f(filename);
+int read_program(boost::program_options::variables_map& vm, std::string& buffer, std::string& output_file) {
+    const auto resolve_output_filename = [&](std::string default_filename) {
+      output_file = default_filename;
+      if (vm.count("output")) {
+        output_file = vm["output"].as<std::string>();
+      }
+    };
+
+    if (vm["stdin"].as<bool>()) {
+      resolve_output_filename("out.c");
+      // don't skip the whitespace while reading
+      std::cin >> std::noskipws;
+
+      std::istream_iterator<char> it(std::cin);
+      std::istream_iterator<char> end;
+      buffer = std::string(it, end);
+      return 0;
+    }
+
+    std::string input_file = vm["filename"].as<std::string>();
+
+    std::string input_file_without_extention = input_file.substr(0, input_file.find_last_of("."));
+    resolve_output_filename(input_file_without_extention + ".c");
+
+    std::ifstream f(input_file);
     if (!f.is_open()) {
       return 1;
     }
@@ -208,7 +231,7 @@ int write_ir(std::string filename, std::string_view ir) {
 int cli_handle(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description desc("Options");
-  bool no_write, print_ir, print_types, print_ast;
+  bool no_write, print_ir, print_types, print_ast, is_stdin;
   std::string input_file;
 
   desc.add_options()
@@ -219,6 +242,7 @@ int cli_handle(int argc, char** argv) {
     ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
     ("print-ir", po::bool_switch(&print_ir), "prints the intermediate representation to the console")
     ("no-write", po::bool_switch(&no_write), "do not write the IR to a file")
+    ("stdin", po::bool_switch(&is_stdin), "read program from stdin")
   ;
   po::positional_options_description pos;
   pos.add("filename", 1);  // first positional arg is filename
@@ -236,20 +260,18 @@ int cli_handle(int argc, char** argv) {
       std::cout << desc << "\n";
       return 0;
   }
-  if (vm.count("filename") == 0) {
+  if (is_stdin && vm.count("filename") != 0) {
+      std::cerr << "You cannot set a filename and the --stdin flag\n";
+      return 1;
+  }
+  if (!is_stdin && vm.count("filename") == 0) {
       std::cerr << "Pleas provide an input file\n";
       return 1;
   }
 
-  std::string input_file_without_extention = input_file.substr(0, input_file.find_last_of("."));
-  std::string output_file = input_file_without_extention + ".c";
-
-  if (vm.count("output")) {
-    output_file = vm["output"].as<std::string>();
-  }
   int ret;
-  std::string buffer;
-  ret = read_program(input_file, buffer);
+  std::string buffer, output_file;
+  ret = read_program(vm, buffer, output_file);
   if (ret) {
     std::cerr << "Couldn't read file '" << input_file << "'. exiting...\n";
     return ret;
