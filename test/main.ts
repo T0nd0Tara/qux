@@ -4,16 +4,12 @@ import { DirEntry } from "@std/fs/unstable-types";
 import * as path from "@std/path";
 import assert from "node:assert";
 import { program } from "commander";
+import type { CmdOutput } from './types.ts';
 const testsLimit = pLimit(4);
 
-const extension = ".qux";
+const extension = ".ts";
 const td = new TextDecoder();
 
-interface CmdOutput {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
 type SuitExpectedResult = CmdOutput & {
   compiles: boolean; // Whether we even can compile it to C
 };
@@ -22,120 +18,70 @@ interface SuitPreperation {
   quxCompArgs?: string[];
   compileIr?: boolean;
 }
-
-interface SuitMetdata {
-  prep?: SuitPreperation;
-  result: SuitExpectedResult;
-}
 interface SuitResult {
   name: string;
-  mismatches: {
-    type: keyof SuitExpectedResult;
-    actual: SuitExpectedResult[keyof SuitExpectedResult];
-    expected: SuitExpectedResult[keyof SuitExpectedResult];
-  }[];
+  error: unknown | null;
 }
-interface TestOpts {
-  record?: true;
-}
-function parseCmdOutput(cmdOutput: Deno.CommandOutput): CmdOutput {
-  return {
-    exitCode: cmdOutput.code,
-    stdout: td.decode(cmdOutput.stdout),
-    stderr: td.decode(cmdOutput.stderr),
-  };
-}
-function getMismatches(
-  expected: SuitExpectedResult,
-  actual: SuitExpectedResult,
-): SuitResult["mismatches"] {
-  const mismatches: SuitResult["mismatches"] = [];
-  // @ts-expect-error: I don't care they don't believe me it's the keys
-  Object.keys(expected).forEach((key: keyof SuitExpectedResult) => {
-    if (expected[key] !== actual[key]) {
-      mismatches.push({
-        type: key,
-        actual: actual[key],
-        expected: expected[key],
-      });
-    }
-  });
-  return mismatches;
-}
-async function getSuitMetadata(
-  suitName: string,
-): Promise<SuitMetdata> {
-  const metadata: SuitMetdata = JSON.parse(
-    await Deno.readTextFile(suitName + ".json"),
-  );
-  metadata.result.stderr ??= "";
-  // @ts-expect-error: metadata.result.compiles can be undefined in file, not in code
-  metadata.result.compiles ??= metadata.prep?.compileIr;
-
-  return metadata;
-}
+interface TestOpts { }
 
 async function runSuite(
-  prep: SuitPreperation | undefined,
   suitPath: string,
-): Promise<SuitExpectedResult> {
-  const irBuild = await new Deno.Command(
-    "./build/qux",
-    {
-      cwd: "..",
-      args: [
-        `${import.meta.dirname}/${suitPath}.qux`,
-        ...(prep?.quxCompArgs ?? []),
-      ],
-    },
-  )
-    .output();
-
-  if (irBuild.code !== 0 || prep?.compileIr === false) {
-    const cmdOutput = parseCmdOutput(irBuild);
-    return {
-      compiles: false,
-      ...cmdOutput,
-    };
+): Promise<unknown | null> {
+  const testFunc: () => Promise<void> = (await import(suitPath)).default;
+  try {
+    await testFunc();
   }
+  catch (err: unknown) {
+    return err;
+  }
+  return null;
 
-  const build = await new Deno.Command(
-    "clang",
-    { args: ["-o", `${suitPath}.a`, `${suitPath}.c`] },
-  )
-    .output();
-  assert(build.code === 0, "Can compile to IR, but not furthar");
+  // const irBuild = await new Deno.Command(
+  //   "./build/qux",
+  //   {
+  //     cwd: "..",
+  //     args: [
+  //       `${import.meta.dirname}/${suitPath}.qux`,
+  //     ],
+  //   },
+  // )
+  //   .output();
 
-  const run = await new Deno.Command(`${suitPath}.a`)
-    .output();
-  return {
-    compiles: true,
-    ...parseCmdOutput(run),
-  };
+  // if (irBuild.code !== 0 || prep?.compileIr === false) {
+  //   const cmdOutput = parseCmdOutput(irBuild);
+  //   return {
+  //     compiles: false,
+  //     ...cmdOutput,
+  //   };
+  // }
+
+  // const build = await new Deno.Command(
+  //   "clang",
+  //   { args: ["-o", `${suitPath}.a`, `${suitPath}.c`] },
+  // )
+  //   .output();
+  // assert(build.code === 0, "Can compile to IR, but not furthar");
+
+  // const run = await new Deno.Command(`${suitPath}.a`)
+  //   .output();
 }
 async function testSuite(
   suitsFolder: string,
   suitName: string,
   testOpts: TestOpts,
 ): Promise<SuitResult> {
-  const suitPath = path.format({ dir: suitsFolder, name: suitName });
+  const suitPath = "./" + path.format({ dir: suitsFolder, name: suitName, ext: extension });
 
-  const metadata = await getSuitMetadata(suitPath);
 
-  const actual: SuitExpectedResult = await runSuite(metadata.prep, suitPath);
+  const error: unknown | null = await runSuite(suitPath);
 
-  const result: SuitResult = {
-    name: suitName,
-    mismatches: getMismatches(metadata.result, actual),
-  };
-  const passed =  result.mismatches.length === 0;
-  const prefix =  passed ? "[PASSED]" : "[ERROR ]";
+  const passed = error === null;
+  const prefix = passed ? "[PASSED]" : "[ERROR ]";
   console.log(`${prefix}: ran ${suitName}`);
-  if (!passed && testOpts.record) {
-    metadata.result = actual;""""
-    await Deno.writeTextFile(suitPath + ".json", JSON.stringify(metadata, null, 2));
+  return {
+    name: suitName,
+    error
   }
-  return result;
 }
 
 async function buildQux() {
@@ -150,8 +96,8 @@ async function buildQux() {
 }
 
 (async () => {
-  program
-    .option("--record");
+  // program
+  //   .option("--record");
   program.parse();
   const opts = program.opts();
 
@@ -168,16 +114,18 @@ async function buildQux() {
       )
     );
   const suitsResults = await Promise.all(suits);
-  const erroredResults = suitsResults.filter((result) =>
-    result.mismatches.length > 0
-  );
-  erroredResults
-    .forEach((result) => {
-      console.log(result.name);
-      result.mismatches.forEach((mismatch) => {
-        console.log(`  ${mismatch.type}`);
-        console.log(`    actual:   ${mismatch.actual}`);
-        console.log(`    expected: ${mismatch.expected}`);
+  const erroredResults = suitsResults.filter((result) => result.error);
+  if (erroredResults.length > 0) {
+    console.log('-------')
+    console.log('Errors:')
+    console.log('-------')
+    erroredResults
+      .forEach((result) => {
+        console.log();
+        console.log(`${result.name}:`);
+        console.log(result.error);
       });
-    });
+
+    Deno.exit(1);
+  }
 })();
