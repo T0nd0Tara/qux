@@ -209,10 +209,12 @@ int cli_handle(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description desc("Options");
   bool no_write, print_ir, print_types, print_ast;
+  std::string input_file;
+
   desc.add_options()
     ("help,h", "produce help message")
     ("output,o", po::value<std::string>(), "output file")
-    ("filename", po::value<std::string>(), "input file")
+    ("filename", po::value<std::string>(&input_file), "input file")
     ("print-ast", po::bool_switch(&print_ast), "prints the AST to the console")
     ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
     ("print-ir", po::bool_switch(&print_ir), "prints the intermediate representation to the console")
@@ -239,7 +241,6 @@ int cli_handle(int argc, char** argv) {
       return 1;
   }
 
-  std::string input_file = vm["filename"].as<std::string>();
   std::string input_file_without_extention = input_file.substr(0, input_file.find_last_of("."));
   std::string output_file = input_file_without_extention + ".c";
 
