@@ -28,8 +28,10 @@ async function createQuxBuildProcess(program: string, args?: Set<string>): Promi
   );
   const childProcess = cmd.spawn();
   const writer = childProcess.stdin.getWriter();
-  await writer.write(te.encode(program));
-  writer.close();
+  try {
+    await writer.write(te.encode(program));
+    await writer.close();
+  } catch {} // sometimes we want to check a compiler error, so the stdin can be close. that's ok
   return childProcess;
 }
 export async function buildQuxProgram(program: string, args?: Set<string>): Promise<CmdOutput> {
