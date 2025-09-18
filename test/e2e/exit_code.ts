@@ -1,6 +1,8 @@
 import { assertEquals } from "jsr:@std/assert";
 import { runQuxProgram } from "../utils/build.ts";
+import { Suite, test } from "../utils/test.ts";
 import type { CmdOutput } from "../types.ts";
+
 const quxProgram = `
 main :: () {
   print("Hello World! 420!!!");
@@ -8,15 +10,20 @@ main :: () {
 };
 `;
 
-export default async () => {
-  const args = new Set([
-    '--no-write',
-    '--stdin',
-  ]);
+export default new Suite('exit code', 
+  test('exit code',
 
-  const quxRes: CmdOutput = await runQuxProgram(quxProgram, args);
+    async () => {
+      const args = new Set([
+        '--no-write',
+        '--stdin',
+      ]);
 
-  assertEquals(quxRes.stdout, "Hello World! 420!!!");
-  assertEquals(quxRes.stderr, "");
-  assertEquals(quxRes.exitCode, 69);
-};
+      const quxRes: CmdOutput = await runQuxProgram(quxProgram, args);
+
+      assertEquals(quxRes.stdout, "Hello World! 420!!!");
+      assertEquals(quxRes.stderr, "");
+      assertEquals(quxRes.exitCode, 60);
+    }
+  ) 
+);

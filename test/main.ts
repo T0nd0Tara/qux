@@ -5,6 +5,7 @@ import * as path from "@std/path";
 import assert from "node:assert";
 import { program } from "commander";
 import type { CmdOutput } from './types.ts';
+import { Suite, Test } from './utils/test.ts';
 const testsLimit = pLimit(4);
 
 const extension = ".ts";
@@ -20,50 +21,30 @@ interface SuitPreperation {
 }
 interface SuitResult {
   name: string;
-  error: unknown | null;
+  errors: {[key: string]: unknown | null};
 }
 interface TestOpts { }
 
-async function runSuite(
-  suitPath: string,
-): Promise<unknown | null> {
-  const testFunc: () => Promise<void> = (await import(suitPath)).default;
+function hasSuitPassed(errors: SuitResult['errors']): boolean {
+  return Object.values(errors).every(err => err === null);
+}
+
+async function runTest(test: Test): Promise<unknown | null> {
   try {
-    await testFunc();
+    await testsLimit(() => test.func());
   }
   catch (err: unknown) {
     return err;
   }
   return null;
 
-  // const irBuild = await new Deno.Command(
-  //   "./build/qux",
-  //   {
-  //     cwd: "..",
-  //     args: [
-  //       `${import.meta.dirname}/${suitPath}.qux`,
-  //     ],
-  //   },
-  // )
-  //   .output();
-
-  // if (irBuild.code !== 0 || prep?.compileIr === false) {
-  //   const cmdOutput = parseCmdOutput(irBuild);
-  //   return {
-  //     compiles: false,
-  //     ...cmdOutput,
-  //   };
-  // }
-
-  // const build = await new Deno.Command(
-  //   "clang",
-  //   { args: ["-o", `${suitPath}.a`, `${suitPath}.c`] },
-  // )
-  //   .output();
-  // assert(build.code === 0, "Can compile to IR, but not furthar");
-
-  // const run = await new Deno.Command(`${suitPath}.a`)
-  //   .output();
+}
+async function runSuite(
+  suitPath: string,
+): Promise<SuitResult['errors']> {
+  const testSuite: Suite = (await import(suitPath)).default;
+  const tests = await Promise.all(testSuite.tests.map(async test => ({ [test.name]: await runTest(test) })));
+  return tests.reduce((prevValue, test) => ({ ...prevValue, ...test }), {});
 }
 async function testSuite(
   suitsFolder: string,
@@ -73,14 +54,14 @@ async function testSuite(
   const suitPath = "./" + path.format({ dir: suitsFolder, name: suitName, ext: extension });
 
 
-  const error: unknown | null = await runSuite(suitPath);
+  const suitErrors: SuitResult['errors'] = await runSuite(suitPath);
 
-  const passed = error === null;
-  const prefix = passed ? "[PASSED]" : "[ERROR ]";
+  const suitPassed = hasSuitPassed(suitErrors);
+  const prefix = suitPassed ? "[PASSED]" : "[ERROR ]";
   console.log(`${prefix}: ran ${suitName}`);
   return {
     name: suitName,
-    error
+    errors: suitErrors,
   }
 }
 
@@ -109,21 +90,22 @@ async function buildQux() {
     .filter((dirEntry: DirEntry) => dirEntry.name.endsWith(extension))
     .map((dirEntry: DirEntry) => dirEntry.name.slice(0, -extension.length))
     .map((suitName) =>
-      testsLimit(() =>
         testSuite(suitsFolder, suitName, { record: opts.record })
-      )
     );
   const suitsResults = await Promise.all(suits);
-  const erroredResults = suitsResults.filter((result) => result.error);
-  if (erroredResults.length > 0) {
+  const erroredSuits = suitsResults.filter((result) => !hasSuitPassed(result.errors));
+  if (erroredSuits.length > 0) {
     console.log('-------')
     console.log('Errors:')
     console.log('-------')
-    erroredResults
-      .forEach((result) => {
+    erroredSuits
+      .forEach((result: SuitResult) => {
         console.log();
         console.log(`${result.name}:`);
-        console.log(result.error);
+        Array.from(Object.entries(result.errors))
+          .filter(([_, error]) => error !== null)
+          .forEach(([testName, error]) => console.log(`\t${testName}: \n\t${String(error).replaceAll('\n', '\n\t')}`))
+        ;
       });
 
     Deno.exit(1);
