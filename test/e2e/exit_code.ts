@@ -23,7 +23,7 @@ export default new Suite('exit code',
 
       assertEquals(quxRes.stdout, "Hello World! 420!!!");
       assertEquals(quxRes.stderr, "");
-      assertEquals(quxRes.exitCode, 60);
+      assertEquals(quxRes.exitCode, 69);
     }
   ) 
 );
