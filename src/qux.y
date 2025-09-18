@@ -265,7 +265,7 @@ int cli_handle(int argc, char** argv) {
       return 1;
   }
   if (!is_stdin && vm.count("filename") == 0) {
-      std::cerr << "Pleas provide an input file\n";
+      std::cerr << "Please provide an input file\n";
       return 1;
   }
 

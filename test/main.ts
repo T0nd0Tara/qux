@@ -104,7 +104,7 @@ async function buildQux() {
         console.log(`${result.name}:`);
         Array.from(Object.entries(result.errors))
           .filter(([_, error]) => error !== null)
-          .forEach(([testName, error]) => console.log(`\t${testName}: \n\t${String(error).replaceAll('\n', '\n\t')}`))
+          .forEach(([testName, error]) => console.log(`\t${testName}: \n\t\t${String(error).replaceAll('\n', '\n\t\t')}`))
         ;
       });
 
