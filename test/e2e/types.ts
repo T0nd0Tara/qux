@@ -8,7 +8,7 @@ main :: () {
 };
 `;
 
-export default new Suite('func type', 
+export default new Suite('types', 
   test(
     'func type',
     async () => {

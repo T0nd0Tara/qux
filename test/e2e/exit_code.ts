@@ -11,7 +11,7 @@ main :: () {
 `;
 
 export default new Suite('exit code', 
-  test('exit code',
+  test('nice',
 
     async () => {
       const args = new Set([
