@@ -208,14 +208,15 @@ int write_ir(std::string filename, std::string_view ir) {
 int cli_handle(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description desc("Options");
+  bool no_write, print_ir, print_types, print_ast;
   desc.add_options()
     ("help,h", "produce help message")
     ("output,o", po::value<std::string>(), "output file")
     ("filename", po::value<std::string>(), "input file")
-    ("print-ast", po::bool_switch(), "prints the AST to the console")
-    ("print-types", po::bool_switch(), "prints the varibales types to the console")
-    ("print-ir", po::bool_switch(), "prints the intermediate representation to the console")
-    ("no-write", po::bool_switch(), "do not write the IR to a file")
+    ("print-ast", po::bool_switch(&print_ast), "prints the AST to the console")
+    ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
+    ("print-ir", po::bool_switch(&print_ir), "prints the intermediate representation to the console")
+    ("no-write", po::bool_switch(&no_write), "do not write the IR to a file")
   ;
   po::positional_options_description pos;
   pos.add("filename", 1);  // first positional arg is filename
@@ -267,20 +268,20 @@ int cli_handle(int argc, char** argv) {
   }
   fill_typing(ctx);
 
-  if (vm["print-ast"].as<bool>()) {
+  if (print_ast) {
     std::cout << stringify_expr_tree(ctx);
     std::cout << "\n\n";
   }
-  if (vm["print-types"].as<bool>()) {
+  if (print_types) {
     std::cout << stringify_types(ctx);
     std::cout << "\n\n";
   }
   std::string ir = ir_gen(ctx);
-  if (vm["print-ir"].as<bool>()) {
+  if (print_ir) {
     std::cout << ir;
     std::cout << "\n\n";
   }
-  if (!vm["no-write"].as<bool>()) {
+  if (!no_write) {
     ret = write_ir(output_file, ir);
     if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
     return ret;
