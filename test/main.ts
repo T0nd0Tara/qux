@@ -58,7 +58,7 @@ async function testSuite(
 
   const suitPassed = hasSuitPassed(suitErrors);
   const prefix = suitPassed ? "[PASSED]" : "[ERROR ]";
-  console.log(`${prefix}: ran ${suitName}`);
+  console.log(`${prefix}: ran ${suitName} (${Array.from(Object.keys(suitErrors)).length} tests)`);
   return {
     name: suitName,
     errors: suitErrors,
@@ -92,7 +92,10 @@ async function buildQux() {
     .map((suitName) =>
         testSuite(suitsFolder, suitName, { record: opts.record })
     );
+  const t0 = performance.now();
   const suitsResults = await Promise.all(suits);
+  const t1 = performance.now();
+
   const erroredSuits = suitsResults.filter((result) => !hasSuitPassed(result.errors));
   if (erroredSuits.length > 0) {
     console.log('-------')
@@ -108,6 +111,14 @@ async function buildQux() {
         ;
       });
 
-    Deno.exit(1);
   }
+
+  const numOfTests: number = suitsResults
+    .map((result) => Array.from(Object.keys(result.errors)).length)
+    .reduce((totalTestsCount, testsCount) => totalTestsCount + testsCount, 0)
+  ;
+
+  console.log(`Ran ${numOfTests} in ${(t1 - t0).toFixed(3)}ms`);
+
+  Deno.exit(Number(erroredSuits.length > 0));
 })();
