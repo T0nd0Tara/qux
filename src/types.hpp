@@ -50,7 +50,7 @@ const static std::map<std::string, std::string> c_identifiers{
 enum class ex_type {
   nop,
   string,
-  number,
+  int_,
   // ident, /* atoms */
   assign,
   plus,
@@ -98,7 +98,7 @@ struct expression {
   // expression(const identifier &i) : type(ex_type::ident), ident(i) {}
   // expression(identifier &&i) : type(ex_type::ident), ident(std::move(i)) {}
   expression(std::string &&s) : type(ex_type::string), strvalue(std::move(s)) {}
-  expression(int32_t v) : type(ex_type::number), numvalue(v) {}
+  expression(int32_t v) : type(ex_type::int_), numvalue(v) {}
 
   bool is_pure() const;
 

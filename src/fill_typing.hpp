@@ -39,7 +39,7 @@ comp_typing get_typing_from_rvalue(expression &e) {
         },
       };
   }
-  case ex_type::number: {
+  case ex_type::int_: {
     return {
         .value = {
           .type = base_type::int_,

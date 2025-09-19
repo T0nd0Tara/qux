@@ -26,7 +26,7 @@ void generate_expression(std::stringstream &ss, const expression &e) {
     ss << '"' << e.strvalue << '"';
     break;
   }
-  case ex_type::number: {
+  case ex_type::int_: {
     ss << e.numvalue;
     break;
   }

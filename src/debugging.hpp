@@ -69,7 +69,7 @@ std::string stringify_expr_tree(lexctx &ctx) {
               ss << e.strvalue;
               break;
             }
-            case ex_type::number: {
+            case ex_type::int_: {
               ss << e.numvalue;
               break;
             }
