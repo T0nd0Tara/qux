@@ -49,7 +49,7 @@ export async function runQuxProgram(program: string, buildIRArgs?: Set<string>, 
   const randomFilename = randomstring.generate({
     length: 12,
     charset: 'alphabetic'
-  });
+  }) + '.a';
   clangArgs ??= new Set();
   clangArgs.add('-xc');
   clangArgs.add(`-o${randomFilename}`);
