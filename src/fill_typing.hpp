@@ -90,6 +90,13 @@ comp_typing get_typing_from_assignment(expression &expr) {
 
   auto &rvalue = expr.children[0];
   switch (rvalue.type) {
+  case ex_type::int_: {
+    return comp_typing{
+        .value = {
+          .type = base_type::int_,
+        }
+      };
+  }
   case ex_type::func: {
     return get_type_of_func(rvalue);
   }
