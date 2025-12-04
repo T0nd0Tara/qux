@@ -8,7 +8,8 @@ SRC_DIR=src
 all: $(BUILD_DIR)/qux
 
 test: $(BUILD_DIR)/qux
-	deno run --allow-read test/main.ts
+	deno run --allow-read --allow-write --allow-run test/main.ts
+.PHONY: test
 
 clean:
 	rm -f $(BUILD_DIR)/*

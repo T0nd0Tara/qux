@@ -1,4 +1,5 @@
 import type { CmdOutput } from "../types.ts";
+import * as path from '@std/path';
 import randomstring from 'randomstring';
 import assert from "node:assert";
 
@@ -17,9 +18,9 @@ async function createQuxBuildProcess(program: string, args?: Set<string>): Promi
 
   args ??= new Set();
   const cmd = new Deno.Command(
-    "./build/qux",
+    path.join("build", "qux"),
     {
-      cwd: "..",
+      cwd: path.join(import.meta.dirname, "..",".."),
       args: Array.from(args),
       stdin: "piped",
       stdout: "piped",
