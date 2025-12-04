@@ -67,7 +67,7 @@ async function testSuite(
 
 async function buildQux() {
   console.log("Building qux...");
-  const build_output = await new Deno.Command("make", { cwd: path.join(import.meta.dirname, "..") }).output();
+  const build_output = await new Deno.Command("make", { cwd: path.join(import.meta.dirname ?? "", "..") }).output();
   if (!build_output.success) {
     console.error(td.decode(build_output.stderr));
     Deno.exit(build_output.code);
@@ -85,7 +85,7 @@ async function buildQux() {
   await buildQux();
 
   const suitsFolder = "e2e";
-  const testFiles = await Array.fromAsync(readDir(path.join(import.meta.dirname, suitsFolder)));
+  const testFiles = await Array.fromAsync(readDir(path.join(import.meta.dirname ?? "", suitsFolder)));
   const suits: Promise<SuitResult>[] = testFiles
     .filter((dirEntry: DirEntry) => dirEntry.name.endsWith(extension))
     .map((dirEntry: DirEntry) => dirEntry.name.slice(0, -extension.length))
