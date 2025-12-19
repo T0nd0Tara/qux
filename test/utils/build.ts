@@ -66,7 +66,12 @@ export async function runQuxProgram(program: string, buildIRArgs?: Set<string>, 
   ).spawn();
   genIRProcess.stdout.pipeTo(clang.stdin);
   const clangOutput = await clang.output();
-  assert(clangOutput.code === 0);
+  if (clangOutput.code !== 0) {
+    console.dir(parseCmdOutput(clangOutput));
+    assert(false, "Couldn't compile to IR.")
+
+  } 
+  
 
   const quxProgramOutput = await new Deno.Command(
     `./${randomFilename}`,

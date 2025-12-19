@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <list>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <memory>
 
 enum class base_type {
   void_, // if 'nil' means empty, void means nothing. for example what a
@@ -20,7 +20,8 @@ enum class base_type {
   func,
   // func_input, // we don't need a func_output as the output is one type, not
   //             // array of different types
-  //             // basically this type is just a container to put the types array
+  //             // basically this type is just a container to put the types
+  //             array
   //             // in the children
 };
 struct comp_typing;
