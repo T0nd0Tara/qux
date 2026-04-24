@@ -1,6 +1,8 @@
 #pragma once
+#include <any>
 #include <cassert>
 #include <cstdint>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
@@ -44,9 +46,6 @@ struct identifier {
   comp_typing type{};
 };
 typedef std::vector<identifier *> ident_vec;
-
-const static std::map<std::string, std::string> c_identifiers{
-    std::make_pair("print", "printf")};
 
 enum class ex_type {
   nop,
