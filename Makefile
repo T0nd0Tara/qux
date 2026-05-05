@@ -1,8 +1,8 @@
 BISON=bison
 CXX=clang++
-CXXFLAGS= -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -g -ggdb
+CXXFLAGS= -std=c++20 -I./magic_enum/include -I. -DYYDEBUG=1 -Wswitch-enum -Wswitch -g -ggdb
 BOOSTFLAGS=-lboost_program_options
-BUILD_DIR=build
+BUILD_DIR=bin
 SRC_DIR=src
 
 all: $(BUILD_DIR)/qux
@@ -14,11 +14,11 @@ test: $(BUILD_DIR)/qux
 clean:
 	rm -f $(BUILD_DIR)/*
 
-$(BUILD_DIR)/qux.cc: $(BUILD_DIR)/qux.re.cc
-	re2c -o $@ $<
+$(BUILD_DIR)/lexer.o: $(SRC_DIR)/lexer.cpp $(SRC_DIR)/lexer.hpp 
+	$(CXX) $(CXXFLAGS) -c -o $@ $< 
 
-$(BUILD_DIR)/qux.re.cc: $(SRC_DIR)/qux.y
-	$(BISON) $(BISONFLAGS) -o $@ $<
+$(BUILD_DIR)/ast.o: $(SRC_DIR)/ast.cpp $(SRC_DIR)/ast.hpp $(SRC_DIR)/lexer.hpp 
+	$(CXX) $(CXXFLAGS) -c -o $@ $< 
 
-$(BUILD_DIR)/qux: $(BUILD_DIR)/qux.cc $(SRC_DIR)/fill_typing.hpp $(SRC_DIR)/types.hpp $(SRC_DIR)/ir.hpp $(SRC_DIR)/macros.hpp $(SRC_DIR)/debugging.hpp
-	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -o $@ $< 
+$(BUILD_DIR)/qux: $(SRC_DIR)/qux.cpp $(BUILD_DIR)/lexer.o $(BUILD_DIR)/ast.o
+	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -o $@ $^ 

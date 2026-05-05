@@ -1,5 +1,5 @@
 target/
-bin/
+bin/*
 .zig-cache/
 zig-out/
 build/*
