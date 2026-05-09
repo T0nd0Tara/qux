@@ -85,7 +85,7 @@ std::pair<AstNode, std::vector<AstError>> parse_expr(const std::vector<Token>& t
 
   const auto expect_end_of_expr = [&]() {
       if (end_index - index != 1) {
-        errors.push_back(error_from_token(tokens[std::min(index + 1, tokens.size() - 1)], "Exprected Semicolon"));
+        errors.push_back(error_from_token(tokens[std::min(index + 1, tokens.size() - 1)], "Expected End Of expresion"));
         ++index;
       } else {
         // +1 to get to the COMMA or CLOSE_PAREN 
@@ -229,6 +229,11 @@ std::pair<AstNode, std::vector<AstError>> parse_statement(const std::vector<Toke
         // Func Call
         case TokenType::OPEN_PAREN: {
           auto [args, errors] = parse_args(tokens, index);
+          if (const auto& end_statement_token = tokens[std::max(index, tokens.size() - 1)];
+            end_statement_token.type != TokenType::SEMICOLON) {
+            errors.push_back(error_from_token(end_statement_token, "Expected Semicolon after function call"));
+          }
+          index++;
           return std::make_pair(AstNode{
             .type = AstNodeType::FUNC_CALL,
             .children = {
