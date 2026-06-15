@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/program_options/errors.hpp>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <iostream>
 #include <format>
@@ -102,6 +103,13 @@ std::pair<AstNode, std::vector<AstError>> parse_expr(const std::vector<Token>& t
         .str_val = curr_token.str_val
       }, errors);
     }
+    case TokenType::INT_LITERAL:{
+      expect_end_of_expr();
+      return std::make_pair(AstNode{
+        .type = AstNodeType::INT_LITERAL,
+        .str_val = curr_token.str_val
+      }, errors);
+    }
     case TokenType::OPEN_PAREN: {
       // TODO: OPEN_PAREN doesnt necessarily mean function, it can be an expression like `(1 + 3 * 5)`
       const size_t close_paren = find_matching_brace(tokens, index);
@@ -149,6 +157,33 @@ std::pair<AstNode, std::vector<AstError>> parse_expr(const std::vector<Token>& t
     }, errors);
   
 }
+
+typedef std::pair<AstNode, std::vector<AstError>> statement_parse_ret_type;
+statement_parse_ret_type parse_return(const std::vector<Token>& tokens, size_t& index, const std::vector<AstNode>& parsed_statements) {
+  const auto& return_token = tokens[index - 1];
+  assert(return_token.str_val == "return");
+
+  const auto curr_token = tokens[index];
+  const size_t statement_end = find_next_delim(tokens, index + 1, [](TokenType type) { return type == TokenType::SEMICOLON; });
+  if (statement_end == (size_t)(-1)) {
+    index = tokens.size();
+    return std::make_pair(
+      AstNode {
+    .type = AstNodeType::RETURN,
+  }, 
+      std::vector<AstError>({ error_from_token(return_token, "Return statement must end with a semicolun") } )
+    );
+  }
+
+  const auto [expr, errors] = parse_expr(tokens, index, statement_end, parsed_statements);
+  return std::make_pair(AstNode {
+    .type = AstNodeType::RETURN,
+    .children = std::vector<AstNode>({ expr })
+  }, errors);
+}
+static const std::map<std::string, std::function<statement_parse_ret_type(const std::vector<Token>& tokens, size_t& index, const std::vector<AstNode>& parsed_statements)>> keyword_parse_map = {
+  {"return", parse_return } 
+};
 
 std::pair<AstNode, std::vector<AstError>> parse_args(const std::vector<Token>& tokens, size_t& index) {
   // std::cout << "parsing args: " << tokens[index] << std::endl;
@@ -212,6 +247,7 @@ std::pair<AstNode, std::vector<AstError>> parse_statement(const std::vector<Toke
 
   switch (curr_token.type) {
     case TokenType::IDENTIFIER: {
+
       const auto& next_token = tokens[++index]; 
       switch (next_token.type) {
         case TokenType::COLON: {
@@ -248,6 +284,10 @@ std::pair<AstNode, std::vector<AstError>> parse_statement(const std::vector<Toke
         }
 
       default: 
+        auto keyword_parse = keyword_parse_map.find(curr_token.str_val);
+        if (keyword_parse != keyword_parse_map.end()) {
+          return keyword_parse->second(tokens, index, parsed_statements);
+        }
         return std::make_pair(
             AstNode{
             .type = AstNodeType::NOOP,
@@ -299,7 +339,7 @@ std::pair<AstNode, std::vector<AstError>> parse_statement(const std::vector<Toke
           AstError{
             .row = curr_token.row,
             .col = curr_token.col,
-            .message = "Cannot Parse Colon After '" + std::string(magic_enum::enum_name(last_statement.type)) + "' statement",
+            .message = std::format("Cannot Parse Colon After '{}' statement", magic_enum::enum_name(last_statement.type)),
           }
 
         });
@@ -360,7 +400,7 @@ std::pair<std::vector<AstNode>, std::vector<AstError>> parse_statements(const st
     errors.insert(errors.end(), statement_errors.begin(), statement_errors.end());
   }
 
-  index = std::max(index, close_curly_bracket + 1);
+  index = close_curly_bracket;
   return std::make_pair(nodes, errors);
 }
 

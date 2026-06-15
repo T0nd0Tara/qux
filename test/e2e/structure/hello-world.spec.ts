@@ -30,4 +30,21 @@ describe("hello world", () => {
 ]
 `);
   });
+  test("ast", async () => {
+    const proc = createQuxBuildProcess(program, new Set([ '--print-ast', '--no-write']));
+    const output = await proc.stdout.text();
+    expect(output).toBe(`└──ROOT
+   ├──DECLARE
+   │   └──VARIABLE: "main"
+   └──ASSIGN_COM
+      ├──VARIABLE: "main"
+      └──FUNC
+         ├──FUNC_CALL
+         │   ├──VARIABLE: "print"
+         │   └──ARGS
+         │      └──STRING_LITERAL: "Hello World\\n"
+         └──RETURN
+            └──INT_LITERAL
+`);
+  });
 });
