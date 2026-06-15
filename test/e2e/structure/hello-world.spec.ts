@@ -37,7 +37,7 @@ describe("hello world", () => {
     const output = await proc.stdout.text();
     expect(output).toBe(`└──ROOT
    ├──DECLARE
-   │   └──VARIABLE: "main"
+   │   └──VARIABLE: "main", () -> (U8)
    └──ASSIGN_COM
       ├──VARIABLE: "main"
       └──FUNC

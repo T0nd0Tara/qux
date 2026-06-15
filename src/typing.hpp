@@ -25,3 +25,5 @@ struct Typing {
 
 
 void fill_typing(AstNode& ast);
+
+std::string stringify_typing(const Typing* typing);

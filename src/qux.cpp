@@ -122,6 +122,8 @@ int cli_handle(int argc, char** argv) {
     std::cerr << "AST Errors:\n\n" << ss_errors.str() << "\n";
     return 1;
   }
+  fill_typing(ast);
+
   if (print_ast) {
     std::stringstream ss_ast;
 
@@ -130,7 +132,6 @@ int cli_handle(int argc, char** argv) {
     return 0;
   }
 
-  fill_typing(ast);
 
   // parser.set_debug_level(1);
   // ret = parser.parse();

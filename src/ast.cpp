@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include "typing.hpp"
 #include "lexer.hpp"
 #include <algorithm>
 #include <boost/program_options/errors.hpp>
@@ -7,6 +8,7 @@
 #include <iterator>
 #include <iostream>
 #include <format>
+#include <sstream>
 #include <utility>
 #include <vector>
 #include <map>
@@ -433,11 +435,30 @@ void stringify_ast(const AstNode& node, std::stringstream& ss, const std::string
   ss << prefix;
   ss << (is_last ? "└──" : "├──");
   ss << magic_enum::enum_name(node.type);
+
+  std::vector<std::string> extra_info;
   if (node.type == AstNodeType::VARIABLE) {
-    ss << ": \"" << node.variable_name << "\"";
+    extra_info.push_back("\"" + node.variable_name + "\"");
   }
   if (node.type == AstNodeType::STRING_LITERAL) {
-    ss << ": \"" << node.str_val << "\"";
+    extra_info.push_back("\"" + node.str_val + "\"");
+  }
+
+  if (
+    std::string typing = stringify_typing(node.typing);
+    !typing.empty()
+  ) {
+    extra_info.push_back(typing);
+  }
+
+  if (extra_info.size() > 0) {
+    ss << ": ";
+    for (size_t i = 0; i < extra_info.size(); ++i) {
+      ss << extra_info[i];
+      if (i < extra_info.size() - 1) {
+        ss << ", ";
+      }
+    }
   }
   ss << '\n'; 
   std::string subprefix = is_last ? "   " : "│   ";
