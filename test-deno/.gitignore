@@ -1,0 +1,4 @@
+vendor/
+node_modules/
+e2e/*.c
+e2e/*.a

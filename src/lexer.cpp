@@ -164,14 +164,11 @@ void stringify_tokens(const std::vector<Token> tokens, std::stringstream& ss) {
   size_t width = static_cast<size_t>(std::log10(tokens.size())) + 1;
   for (size_t i = 0; i < tokens.size(); ++i) {
     const Token& token = tokens[i];
-    ss << "\t" << std::setw(width) << i << ". " << token;
+    ss << "  " << std::setw(width) << i << ". " << token;
     ss << " - " << (token.row + 1) << ":" << (token.col + 1);
     ss << "\n";
-    if (i < tokens.size() - 1) {
-      ss << "\n";
-    }
   }
-  ss << "]\n";
+  ss << "]";
 }
 void stringify_lexer_errors(const std::vector<LexerError> errors, std::stringstream& ss) {
   for (size_t i = 0; i< errors.size(); ++i) {

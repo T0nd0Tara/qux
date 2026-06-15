@@ -52,13 +52,14 @@ int write_ir(std::string filename, std::string_view ir) {
 int cli_handle(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description desc("Options");
-  bool no_write, print_ir, print_types, print_ast, is_stdin;
+  bool no_write, print_ir, print_types, print_tokens, print_ast, is_stdin;
   std::string input_file;
 
   desc.add_options()
     ("help,h", "produce help message")
     ("output,o", po::value<std::string>(), "output file")
     ("filename", po::value<std::string>(&input_file), "input file")
+    ("print-tokens", po::bool_switch(&print_tokens), "prints the lexer tokens to the console")
     ("print-ast", po::bool_switch(&print_ast), "prints the AST to the console")
     ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
     ("print-ir", po::bool_switch(&print_ir), "prints the intermediate representation to the console")
@@ -106,26 +107,26 @@ int cli_handle(int argc, char** argv) {
   }
 
 
-  // {
-  //   std::stringstream ss_tokens;  
-  //   stringify_tokens(tokens, ss_tokens);
-  //   std::cout << ss_tokens.str() << std::endl;
-  //
-  // }
+  if (print_tokens) {
+    std::stringstream ss_tokens;  
+    stringify_tokens(tokens, ss_tokens);
+    std::cout << ss_tokens.str() << std::endl;
+    return 0;
+  }
 
   const auto [ast, ast_errors] = get_ast(tokens);
   if (ast_errors.size() > 0) {
     std::stringstream ss_errors;
     stringify_ast_errors(ast_errors, ss_errors);
     std::cerr << "AST Errors:\n\n" << ss_errors.str() << "\n";
-
+    return 1;
   }
-  {
+  if (print_ast) {
     std::stringstream ss_ast;
 
     stringify_ast(ast, ss_ast);
     std::cout << ss_ast.str();
-
+    return 0;
   }
 
   // parser.set_debug_level(1);
