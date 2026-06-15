@@ -17,8 +17,11 @@ clean:
 $(BUILD_DIR)/lexer.o: $(SRC_DIR)/lexer.cpp $(SRC_DIR)/lexer.hpp 
 	$(CXX) $(CXXFLAGS) -c -o $@ $< 
 
-$(BUILD_DIR)/ast.o: $(SRC_DIR)/ast.cpp $(SRC_DIR)/ast.hpp $(SRC_DIR)/lexer.hpp 
+$(BUILD_DIR)/ast.o: $(SRC_DIR)/ast.cpp $(SRC_DIR)/ast.hpp $(SRC_DIR)/lexer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $< 
 
-$(BUILD_DIR)/qux: $(SRC_DIR)/qux.cpp $(BUILD_DIR)/lexer.o $(BUILD_DIR)/ast.o
+$(BUILD_DIR)/typing.o: $(SRC_DIR)/typing.cpp $(SRC_DIR)/typing.hpp $(SRC_DIR)/ast.hpp 
+	$(CXX) $(CXXFLAGS) -c -o $@ $< 
+
+$(BUILD_DIR)/qux: $(SRC_DIR)/qux.cpp $(BUILD_DIR)/lexer.o $(BUILD_DIR)/ast.o $(BUILD_DIR)/typing.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -o $@ $^ 

@@ -5,6 +5,7 @@
 #include <sstream>
 #include "ast.hpp"
 #include "lexer.hpp"
+#include "typing.hpp"
 
 
 int read_program(boost::program_options::variables_map& vm, std::string& buffer, std::string& output_file) {
@@ -114,7 +115,7 @@ int cli_handle(int argc, char** argv) {
     return 0;
   }
 
-  const auto [ast, ast_errors] = get_ast(tokens);
+  auto [ast, ast_errors] = get_ast(tokens);
   if (ast_errors.size() > 0) {
     std::stringstream ss_errors;
     stringify_ast_errors(ast_errors, ss_errors);
@@ -128,6 +129,8 @@ int cli_handle(int argc, char** argv) {
     std::cout << ss_ast.str();
     return 0;
   }
+
+  fill_typing(ast);
 
   // parser.set_debug_level(1);
   // ret = parser.parse();

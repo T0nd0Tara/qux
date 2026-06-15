@@ -25,12 +25,15 @@ enum class AstNodeType {
 
   RETURN,
 };
+struct Typing;
 struct AstNode {
   AstNodeType type;
 
   std::vector<AstNode> children = {};
   std::string variable_name = "";
   std::string str_val = "";
+
+  Typing* typing = nullptr;
 };
 
 struct AstError {
