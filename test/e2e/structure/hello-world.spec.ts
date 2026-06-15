@@ -9,6 +9,7 @@ const program = String.raw`main :: () {
 describe("hello world", () => {
   test("lexer tokens", async () => {
     const proc = createQuxBuildProcess(program, new Set([ '--print-tokens', '--no-write']));
+    expect(await proc.exited).toBe(0);
     const output = await proc.stdout.text();
     expect(output).toBe(String.raw`[
   00. IDENTIFIER: "main" - 1:1
@@ -32,6 +33,7 @@ describe("hello world", () => {
   });
   test("ast", async () => {
     const proc = createQuxBuildProcess(program, new Set([ '--print-ast', '--no-write']));
+    expect(await proc.exited).toBe(0);
     const output = await proc.stdout.text();
     expect(output).toBe(`└──ROOT
    ├──DECLARE
