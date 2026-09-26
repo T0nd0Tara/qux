@@ -4,6 +4,7 @@
 #include <boost/program_options.hpp>
 #include <sstream>
 #include "ast.hpp"
+#include "ir.hpp"
 #include "lexer.hpp"
 #include "typing.hpp"
 
@@ -133,32 +134,19 @@ int cli_handle(int argc, char** argv) {
   }
 
 
-  // parser.set_debug_level(1);
-  // ret = parser.parse();
-  // if (ret) {
-  //   std::cerr << "Parsing Error\n";
-  //   return ret;
-  // }
-  // fill_typing(ctx);
-  //
-  // if (print_ast) {
-  //   std::cout << stringify_expr_tree(ctx);
-  //   std::cout << "\n\n";
-  // }
-  // if (print_types) {
-  //   std::cout << stringify_types(ctx);
-  //   std::cout << "\n\n";
-  // }
-  // std::string ir = ir_gen(ctx);
-  // if (print_ir) {
-  //   std::cout << ir;
-  //   std::cout << "\n\n";
-  // }
+  std::stringstream ir;
+  generate_ir(ast, ir);
+  if (print_ir) {
+    std::cout << ir.str();
+    std::cout << "\n\n";
+    return 0;
+  }
   // if (!no_write) {
   //   ret = write_ir(output_file, ir);
   //   if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
   //   return ret;
   // }
+
   return ret;
 }
 int main(int argc, char** argv)

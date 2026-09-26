@@ -23,5 +23,8 @@ $(BUILD_DIR)/ast.o: $(SRC_DIR)/ast.cpp $(SRC_DIR)/ast.hpp $(SRC_DIR)/lexer.hpp $
 $(BUILD_DIR)/typing.o: $(SRC_DIR)/typing.cpp $(SRC_DIR)/typing.hpp $(SRC_DIR)/ast.hpp 
 	$(CXX) $(CXXFLAGS) -c -o $@ $< 
 
-$(BUILD_DIR)/qux: $(SRC_DIR)/qux.cpp $(BUILD_DIR)/lexer.o $(BUILD_DIR)/ast.o $(BUILD_DIR)/typing.o
+$(BUILD_DIR)/ir.o: $(SRC_DIR)/ir.cpp $(SRC_DIR)/ir.hpp $(SRC_DIR)/ast.hpp $(SRC_DIR)/typing.hpp 
+	$(CXX) $(CXXFLAGS) -c -o $@ $< 
+
+$(BUILD_DIR)/qux: $(SRC_DIR)/qux.cpp $(BUILD_DIR)/lexer.o $(BUILD_DIR)/ast.o $(BUILD_DIR)/typing.o $(BUILD_DIR)/ir.o
 	$(CXX) $(CXXFLAGS) $(BOOSTFLAGS) -o $@ $^ 
