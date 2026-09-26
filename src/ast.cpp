@@ -443,6 +443,9 @@ void stringify_ast(const AstNode& node, std::stringstream& ss, const std::string
   if (node.type == AstNodeType::STRING_LITERAL) {
     extra_info.push_back("\"" + node.str_val + "\"");
   }
+  if (node.type == AstNodeType::INT_LITERAL) {
+    extra_info.push_back(node.str_val);
+  }
 
   if (
     std::string typing = stringify_typing(node.typing);
