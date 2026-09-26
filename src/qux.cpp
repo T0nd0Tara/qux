@@ -18,7 +18,7 @@ int read_program(boost::program_options::variables_map& vm, std::string& buffer,
     };
 
     if (vm["stdin"].as<bool>()) {
-      resolve_output_filename("out.c");
+      resolve_output_filename("out");
       // don't skip the whitespace while reading
       std::cin >> std::noskipws;
 
@@ -31,7 +31,7 @@ int read_program(boost::program_options::variables_map& vm, std::string& buffer,
     std::string input_file = vm["filename"].as<std::string>();
 
     std::string input_file_without_extention = input_file.substr(0, input_file.find_last_of("."));
-    resolve_output_filename(input_file_without_extention + ".c");
+    resolve_output_filename(input_file_without_extention);
 
     std::ifstream f(input_file);
     if (!f.is_open()) {
@@ -54,13 +54,14 @@ int write_ir(std::string filename, std::string_view ir) {
 int cli_handle(int argc, char** argv) {
   namespace po = boost::program_options;
   po::options_description desc("Options");
-  bool no_write, print_ir, print_types, print_tokens, print_ast, is_stdin;
-  std::string input_file;
+  bool no_write, print_ir, print_types, print_tokens, print_ast, is_stdin, run_jit;
+  std::string input_file, output_file;
 
   desc.add_options()
     ("help,h", "produce help message")
-    ("output,o", po::value<std::string>(), "output file")
+    ("output,o", po::value<std::string>(&output_file), "output file")
     ("filename", po::value<std::string>(&input_file), "input file")
+    ("run", po::bool_switch(&run_jit), "auto runs the program")
     ("print-tokens", po::bool_switch(&print_tokens), "prints the lexer tokens to the console")
     ("print-ast", po::bool_switch(&print_ast), "prints the AST to the console")
     ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
@@ -93,8 +94,13 @@ int cli_handle(int argc, char** argv) {
       return 1;
   }
 
+  if (run_jit && vm.count("output")) {
+    std::cerr << "Cannot set both `--run` and `-o,--output` flags\n";
+    return 1;
+  }
+
   int ret;
-  std::string buffer, output_file;
+  std::string buffer;
   ret = read_program(vm, buffer, output_file);
   if (ret) {
     std::cerr << "Couldn't read file '" << input_file << "'. exiting...\n";
@@ -134,20 +140,30 @@ int cli_handle(int argc, char** argv) {
   }
 
 
-  std::stringstream ir;
-  generate_ir(ast, ir);
+  std::stringstream ir_ss;
+  generate_ir(ast, ir_ss);
+  const std::string ir = ir_ss.str();
   if (print_ir) {
-    std::cout << ir.str();
+    std::cout << ir;
     std::cout << "\n\n";
-    return 0;
   }
-  // if (!no_write) {
-  //   ret = write_ir(output_file, ir);
-  //   if (ret) std::cerr << "Couldn't write to file '" << output_file << "'. exiting...\n";
-  //   return ret;
-  // }
 
-  return ret;
+  if (run_jit) { 
+    JitResult res = create_jit_run_func(ir);
+    if (!res.compilation_succeeded) {
+      std::cerr << "Could not create a jit compilation\n";
+      return 1;
+    }
+    return res.return_code;
+  }
+
+  std::cerr << "generating executable to " << output_file << "\n";
+  if (!write_machine_code(ir, output_file)) {
+    std::cerr << "Could not generate executable\n";
+    return 1;
+  }
+
+  return 0;
 }
 int main(int argc, char** argv)
 {
