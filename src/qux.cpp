@@ -66,7 +66,7 @@ int cli_handle(int argc, char** argv) {
     ("print-ast", po::bool_switch(&print_ast), "prints the AST to the console")
     ("print-types", po::bool_switch(&print_types), "prints the varibales types to the console")
     ("print-ir", po::bool_switch(&print_ir), "prints the intermediate representation to the console")
-    ("no-write", po::bool_switch(&no_write), "do not write the IR to a file")
+    ("no-write", po::bool_switch(&no_write), "do not write the executable to a file")
     ("stdin", po::bool_switch(&is_stdin), "read program from stdin")
   ;
   po::positional_options_description pos;
@@ -157,10 +157,12 @@ int cli_handle(int argc, char** argv) {
     return res.return_code;
   }
 
-  std::cerr << "generating executable to " << output_file << "\n";
-  if (!write_machine_code(ir, output_file)) {
-    std::cerr << "Could not generate executable\n";
-    return 1;
+  if (!no_write) {
+    std::cerr << "generating executable to " << output_file << "\n";
+    if (!write_machine_code(ir, output_file)) {
+      std::cerr << "Could not generate executable\n";
+      return 1;
+    }
   }
 
   return 0;
