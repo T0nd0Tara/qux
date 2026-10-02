@@ -9,7 +9,7 @@ IR_FLAGS=-llldELF -llldCommon $(shell llvm-config --cppflags --ldflags) -lclang-
 all: $(BUILD_DIR)/qux
 
 test: $(BUILD_DIR)/qux
-	bun test
+	bun test --max-concurrency=20
 .PHONY: test
 
 clean:
