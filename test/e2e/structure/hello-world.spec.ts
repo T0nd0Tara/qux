@@ -46,7 +46,7 @@ describe("hello world", () => {
          │   └──ARGS
          │      └──STRING_LITERAL: "Hello World\\n"
          └──RETURN
-            └──INT_LITERAL
+            └──INT_LITERAL: 0
 `);
   });
 });
