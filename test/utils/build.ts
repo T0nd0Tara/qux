@@ -1,9 +1,9 @@
 import path from 'path';
 
-export function createQuxBuildProcess(program: string, args?: Set<string>): Bun.Subprocess {
-  args ??= new Set();
-  args.add('--stdin');
-  const proc: Bun.Subprocess = Bun.spawn(
+export function createQuxBuildProcess(program: string, args?: string[]): Bun.Subprocess<'pipe', 'pipe', 'pipe'> {
+  args ??= [];
+  args.push('--stdin');
+  const proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'> = Bun.spawn(
     [path.join("bin", "qux"), ...Array.from(args)],
     {
       cwd: path.join(import.meta.dirname, "..",".."),

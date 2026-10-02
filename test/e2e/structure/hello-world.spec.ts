@@ -1,5 +1,7 @@
 import { expect, describe, test } from "bun:test";
+import path from 'node:path'
 import { createQuxBuildProcess } from '@/utils/build.ts'
+import { getNewTempFilePath } from '@/utils/globals.ts'
 const program = String.raw`main :: () {
   print("Hello World\n");
   return 0;
@@ -8,9 +10,9 @@ const program = String.raw`main :: () {
 
 describe("hello world", () => {
   test("lexer tokens", async () => {
-    const proc = createQuxBuildProcess(program, new Set([ '--print-tokens', '--no-write']));
+    const proc = createQuxBuildProcess(program, ['--print-tokens', '--no-write']);
     expect(await proc.exited).toBe(0);
-    const output = await proc.stdout.text();
+    const output = await proc.stdout?.text();
     expect(output).toBe(String.raw`[
   00. IDENTIFIER: "main" - 1:1
   01. COLON - 1:6
@@ -32,9 +34,9 @@ describe("hello world", () => {
 `);
   });
   test("ast", async () => {
-    const proc = createQuxBuildProcess(program, new Set([ '--print-ast', '--no-write']));
+    const proc = createQuxBuildProcess(program, ['--print-ast', '--no-write']);
     expect(await proc.exited).toBe(0);
-    const output = await proc.stdout.text();
+    const output = await proc.stdout?.text();
     expect(output).toBe(`└──ROOT
    ├──DECLARE
    │   └──VARIABLE: "main", () -> (U8)
@@ -48,5 +50,23 @@ describe("hello world", () => {
          └──RETURN
             └──INT_LITERAL: 0
 `);
+  });
+  test("run", async () => {
+    const proc = createQuxBuildProcess(program, ['--run']);
+    expect(await proc.exited).toBe(0);
+    const output = await proc.stdout?.text();
+    expect(output).toBe('Hello World\n');
+  });
+  test("build", async () => {
+    const filepath = getNewTempFilePath();
+
+    const proc = createQuxBuildProcess(program, ['-o', filepath]);
+    expect(await proc.exited).toBe(0);
+    const output = await proc.stdout?.text();
+    expect(output).toBe('');
+
+    const runProc = await Bun.spawn([filepath]);
+    expect(await runProc.exited).toBe(0);
+    expect(await runProc.stdout?.text()).toBe('Hello World\n');
   });
 });
